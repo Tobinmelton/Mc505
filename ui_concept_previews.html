@@ -217,6 +217,7 @@
     .pattern-deck.queued:not(.active) .deck-status { color: var(--accent); }
     .deck-toggle { min-width: 22px; min-height: 13px; padding: 0 3px; color: var(--accent-ink); background: var(--accent); border: 0; border-radius: 2px; font: 6px var(--font); text-transform: uppercase; cursor: pointer; }
     .deck-toggle[aria-pressed="false"] { color: var(--muted); background: var(--surface); border: 1px solid var(--line); }
+    .deck-bars { min-height: 15px; padding: 0 2px; color: var(--display); background: var(--surface); border: 1px solid var(--line); border-radius: 2px; font: 6px var(--font); }
     .pattern-picker { position: relative; }
     .pattern-trigger { width: 100%; max-width: 300px; min-height: 30px; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; gap: 6px; color: var(--display); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); font: 10px var(--font); text-align: left; cursor: pointer; }
     .pattern-trigger span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -494,7 +495,7 @@
             <div class="deck-side">
             <div class="pattern-decks">
               <div class="pattern-deck active" data-deck="A">
-                <span class="deck-label"><span>Deck A</span><span class="deck-status">LIVE</span><button class="deck-toggle" type="button" data-deck-toggle="A" aria-pressed="true" aria-label="Toggle deck A">On</button></span>
+                <span class="deck-label"><span>Deck A</span><select class="deck-bars" data-deck-bars="A" aria-label="Deck A auto-advance bars"><option value="0">Hold</option><option value="1">1 bar</option><option value="2">2 bars</option><option value="4">4 bars</option><option value="8">8 bars</option></select><span class="deck-status">LIVE</span><button class="deck-toggle" type="button" data-deck-toggle="A" aria-pressed="true" aria-label="Toggle deck A">On</button></span>
                 <div class="pattern-picker" id="patternAPicker" data-count="14" data-item-label="Pattern" data-initial="001">
                   <button class="pattern-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="patternAMenu">
                     <span class="pattern-current">001 · Warehouse</span><span aria-hidden="true">⌄</span>
@@ -507,7 +508,7 @@
                 </div>
               </div>
               <div class="pattern-deck" data-deck="B">
-                <span class="deck-label"><span>Deck B</span><span class="deck-status">READY</span><button class="deck-toggle" type="button" data-deck-toggle="B" aria-pressed="true" aria-label="Toggle deck B">On</button></span>
+                <span class="deck-label"><span>Deck B</span><select class="deck-bars" data-deck-bars="B" aria-label="Deck B auto-advance bars"><option value="0">Hold</option><option value="1">1 bar</option><option value="2">2 bars</option><option value="4">4 bars</option><option value="8">8 bars</option></select><span class="deck-status">READY</span><button class="deck-toggle" type="button" data-deck-toggle="B" aria-pressed="true" aria-label="Toggle deck B">On</button></span>
                 <div class="pattern-picker" id="patternBPicker" data-count="14" data-item-label="Pattern" data-initial="002">
                   <button class="pattern-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="patternBMenu">
                     <span class="pattern-current">002 · Broken Circuit</span><span aria-hidden="true">⌄</span>
@@ -520,7 +521,7 @@
                 </div>
               </div>
               <div class="pattern-deck" data-deck="C">
-                <span class="deck-label"><span>Deck C</span><span class="deck-status">READY</span><button class="deck-toggle" type="button" data-deck-toggle="C" aria-pressed="true" aria-label="Toggle deck C">On</button></span>
+                <span class="deck-label"><span>Deck C</span><select class="deck-bars" data-deck-bars="C" aria-label="Deck C auto-advance bars"><option value="0">Hold</option><option value="1">1 bar</option><option value="2">2 bars</option><option value="4">4 bars</option><option value="8">8 bars</option></select><span class="deck-status">READY</span><button class="deck-toggle" type="button" data-deck-toggle="C" aria-pressed="true" aria-label="Toggle deck C">On</button></span>
                 <div class="pattern-picker" id="patternCPicker" data-count="14" data-item-label="Pattern" data-initial="003">
                   <button class="pattern-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="patternCMenu">
                     <span class="pattern-current">003 · One Drop</span><span aria-hidden="true">⌄</span>

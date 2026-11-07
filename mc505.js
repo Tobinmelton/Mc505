@@ -139,7 +139,9 @@ const appState = {
   editDeck: "A",
   patternIds: { A: "001", B: "002", C: "003" },
   deckEnabled: { A: true, B: true, C: true },
+  deckBars: { A: 0, B: 0, C: 0 },
   activeDeck: "A",
+  activeDeckBarsElapsed: 0,
   beatSync: true,
   tempo: 126,
   octave: 0,
@@ -453,6 +455,7 @@ class GrooveboxAudio {
     this.isPlaying = true;
     const firstStep = this.context.currentTime + 0.12;
     this.pendingActiveDeck = null;
+    appState.activeDeckBarsElapsed = 0;
     this.decks = Object.fromEntries(deckIds.map((deckId) => [deckId, {
       step: 0, nextTime: firstStep, barStart: firstStep, patternId: appState.patternIds[deckId], pendingPattern: null
     }]));
@@ -532,11 +535,26 @@ class GrooveboxAudio {
           if (this.pendingActiveDeck === deckId) {
             this.pendingActiveDeck = null;
             if (appState.deckEnabled[deckId]) appState.activeDeck = deckId;
+            appState.activeDeckBarsElapsed = 0;
             appState.editDeck = deckId;
             this.applyActiveDeck();
             renderActiveDeck();
             updateSequencerTarget();
             setStatus(`PLAYING · DECK ${deckId}`);
+          } else if (deckId === appState.activeDeck) {
+            // Auto-advance: after N bars on the live deck, hand off to the next enabled deck
+            appState.activeDeckBarsElapsed += 1;
+            const barsLimit = appState.deckBars[deckId];
+            if (barsLimit > 0 && appState.activeDeckBarsElapsed >= barsLimit && !this.pendingActiveDeck) {
+              const startIndex = deckIds.indexOf(deckId);
+              for (let offset = 1; offset <= deckIds.length; offset += 1) {
+                const nextDeckId = deckIds[(startIndex + offset) % deckIds.length];
+                if (nextDeckId !== deckId && appState.deckEnabled[nextDeckId]) {
+                  this.pendingActiveDeck = nextDeckId;
+                  break;
+                }
+              }
+            }
           }
         }
         const pattern = patternLibrary[deck.patternId];
@@ -813,13 +831,24 @@ function setDeckEnabled(deckId, enabled) {
   appState.deckEnabled[deckId] = enabled;
   if (!enabled) {
     if (audioEngine.pendingActiveDeck === deckId) audioEngine.pendingActiveDeck = null;
+    if (audioEngine.decks[deckId]) audioEngine.decks[deckId].pendingPattern = null;
     if (appState.activeDeck === deckId) {
+      // Transfer live state to the first enabled deck immediately (mid-bar, no wait)
       appState.activeDeck = deckIds.find((id) => appState.deckEnabled[id]);
-      if (appState.playing) setStatus(`PLAYING · DECK ${appState.activeDeck}`);
+      appState.activeDeckBarsElapsed = 0;
+      appState.editDeck = appState.activeDeck;
+      updateSequencerTarget();
+      setStatus(appState.playing ? `PLAYING · DECK ${appState.activeDeck}` : `READY · DECK ${appState.activeDeck}`);
     }
-  } else if (!appState.playing && appState.editDeck === deckId) {
-    // Re-enabling the deck you're editing makes it live immediately
+  } else if (appState.playing && audioEngine.decks[deckId]) {
+    // Re-enabling while playing queues the deck to go live at the next bar
+    audioEngine.pendingActiveDeck = deckId;
+    setStatus(`DECK ${deckId} QUEUED`);
+  } else {
+    // Stopped: re-enabling makes it live immediately
     appState.activeDeck = deckId;
+    appState.editDeck = deckId;
+    updateSequencerTarget();
     setStatus(`READY · DECK ${deckId}`);
   }
   audioEngine.applyActiveDeck();
@@ -1313,6 +1342,13 @@ function initializePatternPickers() {
       setDeckEnabled(button.dataset.deckToggle, !appState.deckEnabled[button.dataset.deckToggle]);
     });
   });
+  document.querySelectorAll("[data-deck-bars]").forEach((select) => {
+    select.value = String(appState.deckBars[select.dataset.deckBars] ?? 0);
+    select.addEventListener("change", () => {
+      appState.deckBars[select.dataset.deckBars] = Number(select.value);
+      appState.activeDeckBarsElapsed = 0;
+    });
+  });
   renderActiveDeck();
 }
 
@@ -1334,6 +1370,7 @@ function createProjectSnapshot() {
     state: {
       patternIds: { ...appState.patternIds },
       deckEnabled: { ...appState.deckEnabled },
+      deckBars: { ...appState.deckBars },
       activeDeck: appState.activeDeck,
       editDeck: appState.editDeck,
       beatSync: appState.beatSync,
@@ -1380,6 +1417,10 @@ function restoreProjectSnapshot(project) {
   ]));
   appState.deckEnabled = Object.fromEntries(deckIds.map((deckId) => [deckId, state.deckEnabled?.[deckId] !== false]));
   if (!deckIds.some((deckId) => appState.deckEnabled[deckId])) appState.deckEnabled.A = true;
+  appState.deckBars = Object.fromEntries(deckIds.map((deckId) => {
+    const saved = Number(state.deckBars?.[deckId]);
+    return [deckId, [0, 1, 2, 4, 8].includes(saved) ? saved : 0];
+  }));
   appState.activeDeck = deckIds.includes(state.activeDeck) ? state.activeDeck : "A";
   if (!appState.deckEnabled[appState.activeDeck]) {
     appState.activeDeck = deckIds.find((deckId) => appState.deckEnabled[deckId]);
@@ -1442,7 +1483,11 @@ function restoreProjectSnapshot(project) {
   setMixerMode(appState.mixerMode);
   renderMasterParameter();
   renderControlDials();
-  deckIds.forEach((deckId) => renderPatternSelection(deckId, appState.patternIds[deckId]));
+  deckIds.forEach((deckId) => {
+    renderPatternSelection(deckId, appState.patternIds[deckId]);
+    const barsSelect = document.querySelector(`[data-deck-bars="${deckId}"]`);
+    if (barsSelect) barsSelect.value = String(appState.deckBars[deckId]);
+  });
   renderActiveDeck();
   updateSequencerTarget();
   renderLfo();
