@@ -59,7 +59,7 @@
     h1 { margin: 0; font-size: clamp(24px, 4vw, 38px); line-height: 1; font-weight: 600; }
     .page-mark { font: 11px var(--font); color: #8e9b91; white-space: nowrap; }
     .page-actions { display: flex; align-items: center; gap: 6px; }
-    .page-actions button, .song-tools button { min-height: 27px; padding: 0 8px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 3px; font: 8px var(--font); text-transform: uppercase; cursor: pointer; }
+    .page-actions button { min-height: 27px; padding: 0 8px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 3px; font: 8px var(--font); text-transform: uppercase; cursor: pointer; }
     .page-actions button:disabled { opacity: .45; cursor: default; }
     .project-status { min-width: 54px; color: var(--muted); font: 7px var(--font); text-align: right; text-transform: uppercase; }
 
@@ -108,7 +108,7 @@
 
     .upper-controls {
       display: grid;
-      grid-template-columns: 1.05fr .55fr .85fr 1.1fr 1.6fr;
+      grid-template-columns: 1.05fr .55fr .85fr 1.1fr 1.9fr;
       gap: 8px;
       margin-bottom: 8px;
     }
@@ -195,61 +195,53 @@
     .envelope-control output { color: var(--display); font: 7px var(--font); }
     .envelope-control input { width: 14px; height: 55px; margin: 0; writing-mode: vertical-lr; direction: rtl; accent-color: var(--accent); cursor: ns-resize; }
     .envelope-control label { color: var(--muted); font: 7px var(--font); text-transform: uppercase; }
-    .performance-fields { display: grid; grid-template-columns: 1.7fr .9fr; align-items: start; gap: 8px; }
-    .reserved-field { min-width: 0; display: grid; grid-template-rows: 16px 34px 30px; align-items: start; align-content: start; gap: 4px; }
+    .performance-fields { display: grid; grid-template-columns: 1fr; align-items: start; gap: 8px; }
+    .reserved-field { min-width: 0; display: flex; flex-direction: column; align-items: stretch; align-content: start; gap: 4px; }
     .reserved-label { display: flex; align-items: center; }
-    .arp-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; align-self: end; }
-    .arp-settings select { width: 100%; min-height: 27px; padding: 0 5px; color: var(--display); background: var(--surface); border: 1px solid var(--line); border-radius: 3px; font: 8px var(--font); }
-    .pattern-deck .pattern-picker { align-self: end; }
     .reserved-field > .pattern-picker { align-self: start; margin-top: 16px; }
-    .arp-settings { align-self: start; }
+    .lfo-field { grid-column: 1 / -1; }
+    .lfo-controls { display: grid; grid-template-columns: auto auto 1fr 1fr auto; gap: 6px; align-items: center; }
+    .lfo-controls select { min-height: 24px; padding: 0 4px; color: var(--display); background: var(--surface); border: 1px solid var(--line); border-radius: 3px; font: 8px var(--font); }
+    .lfo-slider { display: flex; align-items: center; gap: 4px; color: var(--muted); font: 7px var(--font); text-transform: uppercase; }
+    .lfo-slider output { color: var(--display); min-width: 18px; text-align: right; }
+    .lfo-slider input { width: 100%; min-width: 40px; accent-color: var(--accent); }
     .reserved-label { display: block; margin-bottom: 7px; color: var(--muted); font-size: 8px; text-transform: uppercase; letter-spacing: .08em; }
-    .pattern-decks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
-    .pattern-deck { min-width: 0; padding: 3px; border: 1px solid transparent; border-radius: 3px; }
+    .pattern-decks { display: grid; grid-template-columns: 1fr; gap: 6px; }
+    .pattern-deck { min-width: 0; padding: 4px; border: 1px solid transparent; border-radius: 3px; transition: opacity .15s ease; }
     .pattern-deck.active { border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
-    .deck-label { margin-bottom: 3px; display: flex; justify-content: space-between; gap: 3px; color: var(--muted); font-size: 7px; text-transform: uppercase; }
-    .deck-status { color: var(--muted); font: 6px var(--font); }
+    .pattern-deck.queued:not(.active) { border-color: color-mix(in srgb, var(--good) 55%, transparent); }
+    .pattern-deck.disabled { opacity: .42; }
+    .deck-label { margin-bottom: 3px; display: flex; justify-content: space-between; align-items: center; gap: 4px; color: var(--muted); font-size: 7px; text-transform: uppercase; }
+    .deck-status { color: var(--muted); font: 6px var(--font); margin-left: auto; }
     .pattern-deck.active .deck-status { color: var(--good); }
+    .pattern-deck.queued:not(.active) .deck-status { color: var(--accent); }
+    .deck-toggle { min-width: 22px; min-height: 13px; padding: 0 3px; color: var(--accent-ink); background: var(--accent); border: 0; border-radius: 2px; font: 6px var(--font); text-transform: uppercase; cursor: pointer; }
+    .deck-toggle[aria-pressed="false"] { color: var(--muted); background: var(--surface); border: 1px solid var(--line); }
     .pattern-picker { position: relative; }
-    .pattern-trigger { width: 100%; min-height: 29px; padding: 0 7px; display: flex; align-items: center; justify-content: space-between; gap: 5px; color: var(--display); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); font: 8px var(--font); text-align: left; cursor: pointer; }
+    .pattern-trigger { width: 100%; max-width: 300px; min-height: 30px; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; gap: 6px; color: var(--display); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); font: 10px var(--font); text-align: left; cursor: pointer; }
     .pattern-trigger span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .pattern-trigger span:last-child { color: var(--muted); font-size: 12px; }
-    .pattern-menu { position: absolute; z-index: 30; top: calc(100% + 7px); left: 0; width: min(360px, calc(100vw - 40px)); padding: 10px; color: var(--ink); background: var(--shell); border: 1px solid var(--shell-edge); border-radius: var(--radius); box-shadow: 0 16px 38px rgba(0,0,0,.48); }
+    .pattern-trigger span:last-child { color: var(--muted); font-size: 14px; }
+    .pattern-menu { position: absolute; z-index: 30; top: calc(100% + 7px); left: 0; width: min(430px, calc(100vw - 40px)); padding: 12px; color: var(--ink); background: var(--shell); border: 1px solid var(--shell-edge); border-radius: var(--radius); box-shadow: 0 16px 38px rgba(0,0,0,.48); }
     .pattern-menu[hidden] { display: none; }
     .reserved-field:last-child .pattern-menu { right: 0; left: auto; }
-    .pattern-deck:last-child .pattern-menu { right: 0; left: auto; }
+    .pattern-deck .pattern-menu { right: auto; left: 0; }
     .pattern-menu-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 9px; }
-    .pattern-menu-head strong { font: 600 12px var(--heading); }
-    .pattern-count { color: var(--muted); font: 8px var(--font); }
-    .pattern-search { width: 100%; min-height: 32px; padding: 0 9px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); font: 10px var(--font); }
+    .pattern-menu-head strong { font: 600 15px var(--heading); }
+    .pattern-count { color: var(--muted); font: 9px var(--font); }
+    .pattern-search { width: 100%; min-height: 38px; padding: 0 11px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); font: 12px var(--font); }
     .pattern-search::placeholder { color: var(--muted); }
-    .pattern-results { max-height: 200px; margin-top: 6px; overflow-y: auto; overscroll-behavior: contain; }
-    .pattern-option { width: 100%; min-height: 28px; padding: 0 7px; display: flex; justify-content: space-between; align-items: center; color: var(--ink); background: transparent; border: 0; border-radius: 3px; font: 9px var(--font); text-align: left; cursor: pointer; }
+    .pattern-results { max-height: 320px; margin-top: 7px; overflow-y: auto; overscroll-behavior: contain; }
+    .pattern-option { width: 100%; min-height: 36px; padding: 0 9px; display: flex; justify-content: space-between; align-items: center; color: var(--ink); background: transparent; border: 0; border-radius: 3px; font: 11px var(--font); text-align: left; cursor: pointer; }
     .pattern-option:hover, .pattern-option:focus-visible, .pattern-option[aria-selected="true"] { color: var(--accent-ink); background: var(--accent); outline: none; }
-    .pattern-option small { font: 8px var(--font); opacity: .72; }
-    .pattern-empty { padding: 12px 8px; color: var(--muted); font: 9px var(--font); }
-    .song-panel { max-width: 1600px; margin: 0 auto 8px; padding: 8px 10px; background: linear-gradient(180deg, color-mix(in srgb, var(--surface-raised) 24%, var(--surface)), var(--surface)); border: 1px solid var(--line); border-radius: var(--radius); }
-    .song-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
-    .song-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
-    .song-tools label { display: flex; align-items: center; gap: 5px; color: var(--muted); font: 7px var(--font); text-transform: uppercase; }
-    .song-tools select, .song-entry select { min-height: 26px; padding: 0 6px; color: var(--display); background: var(--surface); border: 1px solid var(--line); border-radius: 3px; font: 8px var(--font); }
-    #songModeButton { transition: background .12s, color .12s, box-shadow .12s; }
-    #songModeButton[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 70%, transparent), inset 0 1px 0 rgba(255,255,255,.35); font-weight: 600; }
-    .song-sequence { margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 4px; list-style: none; }
-    .song-entry { min-width: 0; min-height: 30px; padding: 3px 5px; display: grid; grid-template-columns: 20px minmax(0, 1fr) auto auto; align-items: center; gap: 5px; background: color-mix(in srgb, var(--surface-raised) 25%, transparent); border: 1px solid var(--line); border-radius: 3px; }
-    .song-entry.current { border-color: var(--accent); }
-    .song-entry-number { color: var(--muted); font: 7px var(--font); }
-    .song-entry-name { overflow: hidden; color: var(--ink); font: 8px var(--font); text-overflow: ellipsis; white-space: nowrap; }
-    .song-entry select { min-height: 22px; }
-    .song-entry-tools { display: flex; gap: 2px; }
-    .song-entry-tools button { width: 22px; height: 22px; padding: 0; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 3px; font: 10px var(--font); cursor: pointer; }
-    .song-entry-tools button:disabled { opacity: .35; cursor: default; }
-    .song-empty { padding: 8px; color: var(--muted); font: 8px var(--font); }
-    .beat-sync { min-height: 26px; margin-top: 6px; padding: 0 8px; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); font: 7px var(--font); text-transform: uppercase; cursor: pointer; }
-    .beat-sync[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent); border-color: transparent; }
-    .sync-indicator { width: 6px; height: 6px; border: 1px solid currentColor; border-radius: 50%; }
+    .pattern-option small { font: 10px var(--font); opacity: .72; }
+    .pattern-empty { padding: 14px 9px; color: var(--muted); font: 10px var(--font); }
+    .beat-sync { min-height: 30px; margin-top: 0; padding: 0 12px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); font: 600 10px var(--font); text-transform: uppercase; cursor: pointer; transition: background .12s, color .12s, box-shadow .12s; align-self: stretch; }
+    .beat-sync[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent); border-color: transparent; box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 65%, transparent), inset 0 1px 0 rgba(255,255,255,.35); }
+    .sync-indicator { width: 8px; height: 8px; border: 1px solid currentColor; border-radius: 50%; }
     .beat-sync[aria-pressed="true"] .sync-indicator { background: currentColor; }
-    .sync-state { opacity: .75; }
+    .sync-state { opacity: .8; }
+    .deck-side { display: flex; align-items: stretch; gap: 6px; }
+    .deck-side .pattern-decks { flex: 1; }
     .mixer-panel, .sequencer-panel {
       padding: 9px 10px 10px;
       background: linear-gradient(180deg, color-mix(in srgb, var(--surface-raised) 24%, var(--surface)), var(--surface));
@@ -402,8 +394,7 @@
       .envelope-control input { height: 58px; }
       .performance-fields { grid-template-columns: 1fr; gap: 10px; }
       .performance-fields > .reserved-field:last-child { max-width: none; }
-      .pattern-deck .pattern-menu { width: min(360px, calc(100vw - 72px)); }
-      .pattern-menu { width: min(360px, calc(100vw - 72px)); }
+      .pattern-menu { width: min(430px, calc(100vw - 32px)); }
       .control-panel { min-height: 96px; }
       .channel { min-height: 142px; }
       .meter { display: none; }
@@ -500,9 +491,10 @@
         <div class="performance-fields">
           <div class="reserved-field">
             <span class="reserved-label">Pattern Decks</span>
+            <div class="deck-side">
             <div class="pattern-decks">
               <div class="pattern-deck active" data-deck="A">
-                <span class="deck-label"><span>Deck A</span><span class="deck-status">LIVE</span></span>
+                <span class="deck-label"><span>Deck A</span><span class="deck-status">LIVE</span><button class="deck-toggle" type="button" data-deck-toggle="A" aria-pressed="true" aria-label="Toggle deck A">On</button></span>
                 <div class="pattern-picker" id="patternAPicker" data-count="14" data-item-label="Pattern" data-initial="001">
                   <button class="pattern-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="patternAMenu">
                     <span class="pattern-current">001 · Warehouse</span><span aria-hidden="true">⌄</span>
@@ -515,7 +507,7 @@
                 </div>
               </div>
               <div class="pattern-deck" data-deck="B">
-                <span class="deck-label"><span>Deck B</span><span class="deck-status">READY</span></span>
+                <span class="deck-label"><span>Deck B</span><span class="deck-status">READY</span><button class="deck-toggle" type="button" data-deck-toggle="B" aria-pressed="true" aria-label="Toggle deck B">On</button></span>
                 <div class="pattern-picker" id="patternBPicker" data-count="14" data-item-label="Pattern" data-initial="002">
                   <button class="pattern-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="patternBMenu">
                     <span class="pattern-current">002 · Broken Circuit</span><span aria-hidden="true">⌄</span>
@@ -527,58 +519,48 @@
                   </div>
                 </div>
               </div>
+              <div class="pattern-deck" data-deck="C">
+                <span class="deck-label"><span>Deck C</span><span class="deck-status">READY</span><button class="deck-toggle" type="button" data-deck-toggle="C" aria-pressed="true" aria-label="Toggle deck C">On</button></span>
+                <div class="pattern-picker" id="patternCPicker" data-count="14" data-item-label="Pattern" data-initial="003">
+                  <button class="pattern-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="patternCMenu">
+                    <span class="pattern-current">003 · One Drop</span><span aria-hidden="true">⌄</span>
+                  </button>
+                  <div class="pattern-menu" id="patternCMenu" hidden>
+                    <div class="pattern-menu-head"><strong>Choose Pattern C</strong><span class="pattern-count">14 / 14</span></div>
+                    <input class="pattern-search" type="search" placeholder="Search by number" aria-label="Search Deck C patterns" autocomplete="off">
+                    <div class="pattern-results" role="listbox" aria-label="Deck C patterns"></div>
+                  </div>
+                </div>
+              </div>
             </div>
             <button class="beat-sync" id="beatSync" type="button" aria-pressed="false" aria-label="Beat sync off">
               <span class="sync-indicator" aria-hidden="true"></span><span>Beat Sync</span><span class="sync-state">Off</span>
             </button>
-          </div>
-          <div class="reserved-field">
-            <span class="reserved-label">Arpeggiator</span>
-            <div class="pattern-picker" id="arpeggiatorPicker" data-count="8" data-item-label="Arp" data-initial="off">
-              <button class="pattern-trigger" id="arpeggiatorTrigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="arpeggiatorMenu">
-                <span class="pattern-current">OFF · Off</span><span aria-hidden="true">⌄</span>
-              </button>
-              <div class="pattern-menu" id="arpeggiatorMenu" hidden>
-                <div class="pattern-menu-head"><strong>Choose Arp Style</strong><span class="pattern-count">8 / 8</span></div>
-                <input class="pattern-search" type="search" placeholder="Search styles" aria-label="Search arpeggiator styles" autocomplete="off">
-                <div class="pattern-results" role="listbox" aria-label="Arpeggiator styles"></div>
-              </div>
             </div>
-            <div class="arp-settings">
-              <select id="arpRate" aria-label="Arpeggiator rate">
-                <option value="1">1/16</option>
-                <option value="2">1/8</option>
-                <option value="0.5">1/32</option>
+          </div>
+          <div class="reserved-field lfo-field">
+            <span class="reserved-label">LFO <span id="lfoPartLabel">KICK</span></span>
+            <div class="lfo-controls">
+              <select id="lfoTarget" aria-label="LFO target">
+                <option value="off">Off</option>
+                <option value="pitch">Pitch</option>
+                <option value="filter">Filter</option>
+                <option value="amp">Amp</option>
+                <option value="pan">Pan</option>
               </select>
-              <select id="arpRange" aria-label="Arpeggiator octave range">
-                <option value="1">1 Oct</option>
-                <option value="2">2 Oct</option>
-                <option value="3">3 Oct</option>
+              <select id="lfoShape" aria-label="LFO waveform">
+                <option value="sine">Sine</option>
+                <option value="triangle">Tri</option>
+                <option value="square">Square</option>
+                <option value="sawtooth">Saw</option>
               </select>
+              <label class="lfo-slider">Rate <output id="lfoRateValue">4.0</output><input id="lfoRate" type="range" min="0.1" max="20" step="0.1" value="4" aria-label="LFO rate hertz"></label>
+              <label class="lfo-slider">Depth <output id="lfoDepthValue">0</output><input id="lfoDepth" type="range" min="0" max="100" step="1" value="0" aria-label="LFO depth"></label>
+              <button class="randomize" id="lfoRandomizeButton" type="button" title="Randomize LFO" aria-label="Randomize LFO">🎲</button>
             </div>
           </div>
         </div>
       </div>
-    </section>
-
-    <section class="song-panel" aria-label="Pattern set and song arrangement">
-      <div class="song-head">
-        <span class="kicker">Pattern Set / Song</span>
-        <div class="song-tools">
-          <label for="patternSetSelect">Set
-            <select id="patternSetSelect">
-              <option value="roots">Roots & One Drop</option>
-              <option value="steppers">Rockers & Steppers</option>
-              <option value="dub">Dub & Half-Time</option>
-            </select>
-          </label>
-          <button type="button" id="loadPatternSetButton">Load Set</button>
-          <button type="button" id="addSongPatternButton">Add Live</button>
-          <button type="button" id="clearSongButton">Clear</button>
-          <button type="button" id="songModeButton" aria-pressed="false">Song Mode Off</button>
-        </div>
-      </div>
-      <ol class="song-sequence" id="songSequence" aria-label="Song pattern sequence"></ol>
     </section>
 
     <section class="mixer-panel" aria-label="Seven-part mixer">
@@ -622,7 +604,7 @@
       <div class="seq-head">
         <span class="kicker">Step sequencer <span aria-hidden="true">/</span> 16 <span id="sequencerTarget">DECK A / KICK</span></span>
         <div class="seq-controls">
-          <div class="deck-edit" role="group" aria-label="Edit pattern deck"><button type="button" data-edit-deck="A" aria-pressed="true">A</button><button type="button" data-edit-deck="B" aria-pressed="false">B</button></div>
+          <div class="deck-edit" role="group" aria-label="Edit pattern deck"><button type="button" data-edit-deck="A" aria-pressed="true">A</button><button type="button" data-edit-deck="B" aria-pressed="false">B</button><button type="button" data-edit-deck="C" aria-pressed="false">C</button></div>
           <div class="octave"><button type="button" data-octave="-1" aria-label="Lower bass octave">− Oct</button><button type="button" data-octave="1" aria-label="Raise bass octave">+ Oct</button></div>
         </div>
       </div>
@@ -636,6 +618,6 @@
     </section>
   </main>
 
-  <script src="./mc505.js?v=arp" defer></script>
+  <script src="./mc505.js?v=lfo" defer></script>
 </body>
 </html>

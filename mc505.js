@@ -8,6 +8,8 @@ const trackDefinitions = [
   { id: "bass", label: "Bass", voice: "bass" }
 ];
 
+const deckIds = ["A", "B", "C"];
+
 const makeSteps = (hits) => {
   const steps = Array(16).fill(0);
   hits.forEach(([step, value]) => { steps[step] = value; });
@@ -24,6 +26,13 @@ const createTrackEnvelope = () => ({
   pitch: { depth: 24, attack: 14, decay: 24, sustain: 0, release: 12 },
   filter: { depth: 32, attack: 8, decay: 32, sustain: 56, release: 24 },
   amp: { depth: 0, attack: 4, decay: 18, sustain: 72, release: 20 }
+});
+
+const createTrackLfo = () => ({
+  target: "off",
+  shape: "sine",
+  rate: 4,
+  depth: 0
 });
 
 const patternLibrary = {
@@ -122,43 +131,16 @@ const patternLibrary = {
   })
 };
 
-const patternSets = {
-  roots: [
-    { patternId: "003", bars: 4 },
-    { patternId: "006", bars: 4 },
-    { patternId: "011", bars: 4 },
-    { patternId: "014", bars: 4 }
-  ],
-  steppers: [
-    { patternId: "004", bars: 4 },
-    { patternId: "005", bars: 4 },
-    { patternId: "013", bars: 4 },
-    { patternId: "009", bars: 4 }
-  ],
-  dub: [
-    { patternId: "007", bars: 4 },
-    { patternId: "010", bars: 4 },
-    { patternId: "012", bars: 4 },
-    { patternId: "006", bars: 4 }
-  ]
-};
-
-const makeSongSequence = (setId) => patternSets[setId].map((entry) => ({ ...entry }));
 const projectStorageKey = "mc505-groovebox-project-v1";
 
 const appState = {
   playing: false,
   selectedTrack: "bd",
   editDeck: "A",
-  patternIds: { A: "001", B: "002" },
+  patternIds: { A: "001", B: "002", C: "003" },
+  deckEnabled: { A: true, B: true, C: true },
   activeDeck: "A",
   beatSync: true,
-  arp: { style: "off", rate: 1, range: 1 },
-  songSet: "roots",
-  songSequence: makeSongSequence("roots"),
-  songMode: false,
-  songIndex: 0,
-  songBarsElapsed: 0,
   tempo: 126,
   octave: 0,
   mixerMode: "level",
@@ -185,7 +167,8 @@ appState.channels = Object.fromEntries(trackDefinitions.map((track) => {
     mfxSend: 18,
     muted: false,
     soloed: false,
-    envelope: createTrackEnvelope()
+    envelope: createTrackEnvelope(),
+    lfo: createTrackLfo()
   }];
 }));
 
@@ -195,9 +178,6 @@ const elements = {
   status: document.querySelector("#playbackStatus"),
   tempoValue: document.querySelector("#tempoValue"),
   beatSync: document.querySelector("#beatSync"),
-  songSequence: document.querySelector("#songSequence"),
-  songMode: document.querySelector("#songModeButton"),
-  patternSet: document.querySelector("#patternSetSelect"),
   projectStatus: document.querySelector("#projectStatus"),
   saveProject: document.querySelector("#saveProjectButton"),
   recallProject: document.querySelector("#recallProjectButton"),
@@ -212,11 +192,11 @@ class GrooveboxAudio {
     this.timer = null;
     this.decks = {};
     this.channels = {};
-    this.deckGains = { A: {}, B: {} };
+    this.deckGains = Object.fromEntries(deckIds.map((deckId) => [deckId, {}]));
+    this.pendingActiveDeck = null;
     this.mfxBranches = {};
     this.isPlaying = false;
     this.meterTimer = null;
-    this.songStarted = false;
   }
 
   ensureGraph() {
@@ -282,7 +262,7 @@ class GrooveboxAudio {
       gain.connect(mfxSend);
       this.channels[track.id] = { input, panner, gain, meter, reverbSend, delaySend, mfxSend, reverbReturn, delayReturn, delayFeedback };
 
-      for (const deck of ["A", "B"]) {
+      for (const deck of deckIds) {
         const deckGain = context.createGain();
         deckGain.connect(input);
         this.deckGains[deck][track.id] = deckGain;
@@ -458,9 +438,11 @@ class GrooveboxAudio {
 
   applyActiveDeck() {
     if (!this.context) return;
-    for (const track of trackDefinitions) {
-      this.setParam(this.deckGains.A[track.id].gain, appState.activeDeck === "A" ? 1 : 0);
-      this.setParam(this.deckGains.B[track.id].gain, appState.activeDeck === "B" ? 1 : 0);
+    for (const deckId of deckIds) {
+      const audible = appState.activeDeck === deckId && appState.deckEnabled[deckId];
+      for (const track of trackDefinitions) {
+        this.setParam(this.deckGains[deckId][track.id].gain, audible ? 1 : 0);
+      }
     }
   }
 
@@ -469,14 +451,11 @@ class GrooveboxAudio {
     await this.context.resume();
     if (this.timer) window.clearInterval(this.timer);
     this.isPlaying = true;
-    this.songStarted = false;
-    appState.songIndex = 0;
-    appState.songBarsElapsed = 0;
     const firstStep = this.context.currentTime + 0.12;
-    this.decks = {
-      A: { step: 0, nextTime: firstStep, barStart: firstStep, patternId: appState.patternIds.A, pendingPattern: null, pendingActive: false },
-      B: { step: 0, nextTime: firstStep, barStart: firstStep, patternId: appState.patternIds.B, pendingPattern: null, pendingActive: false }
-    };
+    this.pendingActiveDeck = null;
+    this.decks = Object.fromEntries(deckIds.map((deckId) => [deckId, {
+      step: 0, nextTime: firstStep, barStart: firstStep, patternId: appState.patternIds[deckId], pendingPattern: null
+    }]));
     this.schedule();
     this.timer = window.setInterval(() => this.schedule(), 25);
   }
@@ -489,26 +468,34 @@ class GrooveboxAudio {
   }
 
   selectPattern(deckId, patternId) {
-    if (appState.songMode) setSongMode(false);
     if (this.isPlaying && this.decks[deckId]) {
       this.decks[deckId].pendingPattern = patternId;
-      this.decks[deckId].pendingActive = true;
-      setStatus(`DECK ${deckId} QUEUED`);
+      if (appState.deckEnabled[deckId]) {
+        this.pendingActiveDeck = deckId;
+        setStatus(`DECK ${deckId} QUEUED`);
+      } else {
+        setStatus(`DECK ${deckId} PATTERN SET`);
+      }
+      renderActiveDeck();
       return;
     }
     if (this.decks[deckId]) this.decks[deckId].patternId = patternId;
-    appState.activeDeck = deckId;
+    if (appState.deckEnabled[deckId]) appState.activeDeck = deckId;
     appState.editDeck = deckId;
     this.applyActiveDeck();
     renderActiveDeck();
     updateSequencerTarget();
+    if (!this.isPlaying) setStatus(`READY · DECK ${appState.activeDeck}`);
   }
 
   setBeatSync(enabled) {
-    if (!enabled || !this.isPlaying || !this.decks.A || !this.decks.B) return;
-    this.decks.B.step = this.decks.A.step;
-    this.decks.B.nextTime = this.decks.A.nextTime;
-    this.decks.B.barStart = this.decks.A.barStart;
+    if (!enabled || !this.isPlaying || !this.decks.A) return;
+    for (const deckId of deckIds) {
+      if (deckId === "A" || !this.decks[deckId]) continue;
+      this.decks[deckId].step = this.decks.A.step;
+      this.decks[deckId].nextTime = this.decks.A.nextTime;
+      this.decks[deckId].barStart = this.decks.A.barStart;
+    }
   }
 
   timingForStep(deck, pattern, stepIndex, stepDuration, baseTime) {
@@ -531,40 +518,20 @@ class GrooveboxAudio {
     if (!this.isPlaying || !this.context) return;
     const now = this.context.currentTime;
     const horizon = now + 0.12;
-    for (const deckId of ["A", "B"]) {
+    for (const deckId of deckIds) {
       const deck = this.decks[deckId];
       while (deck.nextTime < horizon) {
         if (deck.step === 0) {
           deck.barStart = deck.nextTime;
-          if (deckId === appState.activeDeck && appState.songMode && appState.songSequence.length) {
-            if (!this.songStarted) {
-              this.songStarted = true;
-              appState.songIndex = 0;
-              appState.songBarsElapsed = 0;
-            } else {
-              appState.songBarsElapsed += 1;
-              if (appState.songBarsElapsed >= appState.songSequence[appState.songIndex].bars) {
-                appState.songIndex = (appState.songIndex + 1) % appState.songSequence.length;
-                appState.songBarsElapsed = 0;
-              }
-            }
-            const songEntry = appState.songSequence[appState.songIndex];
-            if (deck.patternId !== songEntry.patternId) {
-              deck.patternId = songEntry.patternId;
-              appState.patternIds[deckId] = songEntry.patternId;
-              renderPatternSelection(deckId, songEntry.patternId);
-            }
-            renderSongPosition();
-          }
           if (deck.pendingPattern) {
             deck.patternId = deck.pendingPattern;
             deck.pendingPattern = null;
             appState.patternIds[deckId] = deck.patternId;
             renderPatternSelection(deckId, deck.patternId);
           }
-          if (deck.pendingActive) {
-            deck.pendingActive = false;
-            appState.activeDeck = deckId;
+          if (this.pendingActiveDeck === deckId) {
+            this.pendingActiveDeck = null;
+            if (appState.deckEnabled[deckId]) appState.activeDeck = deckId;
             appState.editDeck = deckId;
             this.applyActiveDeck();
             renderActiveDeck();
@@ -585,18 +552,7 @@ class GrooveboxAudio {
           const value = pattern.parts[track.id][stepIndex];
           if (!value) continue;
           if (track.id === "bass") {
-            const arp = arpPatterns[appState.arp.style];
-            const arpNotes = arp.notes(appState.arp.range);
-            if (appState.arp.style !== "off" && arpNotes.length > 1) {
-              const rate = appState.arp.rate;
-              const hits = Math.max(1, Math.round(rate));
-              for (let hit = 0; hit < hits; hit += 1) {
-                const arpTime = this.timingForStep(deck, pattern, stepIndex + hit / rate, stepDuration, baseTime);
-                this.trigger(track, 92, value + appState.octave * 12 + arpNotes[hit % arpNotes.length], arpTime, deckId, stepDuration / rate);
-              }
-            } else {
-              this.trigger(track, 92, value + appState.octave * 12, eventTime, deckId, stepDuration);
-            }
+            this.trigger(track, 92, value + appState.octave * 12, eventTime, deckId, stepDuration);
           } else {
             this.trigger(track, value, 0, eventTime, deckId, stepDuration);
           }
@@ -619,7 +575,9 @@ class GrooveboxAudio {
     const amplitude = Math.max(0.0001, velocity / 127 * masterVelocity * velocityFactor);
     const destination = this.deckGains[deckId][track.id];
     const envelope = context.createGain();
-    envelope.connect(destination);
+    const panner = context.createStereoPanner();
+    envelope.connect(panner);
+    panner.connect(destination);
 
     const envelopeTiming = (settings, duration) => {
       const attack = 0.003 + settings.attack / 127 * 0.12;
@@ -678,6 +636,7 @@ class GrooveboxAudio {
       oscillator.frequency.exponentialRampToValueAtTime(46, time + 0.12);
       modulatePitch(oscillator, 145, 0.26);
       decay(0.26, amplitude * 0.9);
+      this.applyLfo(track, time, time + voiceEnd(0.26), { oscillator, envelope, panner, baseFrequency: 145 });
       oscillator.connect(envelope);
       oscillator.start(time);
       oscillator.stop(time + voiceEnd(0.26));
@@ -694,6 +653,8 @@ class GrooveboxAudio {
       modulateFilter(filter, baseFrequency, track.voice === "snare" ? 0.16 : track.voice === "hatOpen" ? 0.19 : 0.045);
       source.connect(filter);
       filter.connect(envelope);
+      const noiseDuration = track.voice === "snare" ? 0.16 : track.voice === "hatOpen" ? 0.19 : 0.045;
+      this.applyLfo(track, time, time + voiceEnd(noiseDuration), { filter, envelope, panner, baseFrequency });
       if (track.voice === "clap") {
         const pulse = amplitude * 0.55;
         envelope.gain.setValueAtTime(0.0001, time);
@@ -724,6 +685,7 @@ class GrooveboxAudio {
       modulatePitch(oscillator, baseFrequency, stepDuration * 0.8);
       modulateFilter(voiceFilter, 720, stepDuration * 0.8);
       decay(stepDuration * 0.8, amplitude * 0.46);
+      this.applyLfo(track, time, time + voiceEnd(stepDuration * 0.8), { oscillator, filter: voiceFilter, envelope, panner, baseFrequency });
       oscillator.connect(voiceFilter);
       voiceFilter.connect(envelope);
       oscillator.start(time);
@@ -735,30 +697,47 @@ class GrooveboxAudio {
     oscillator.frequency.value = stepPercPitch[track.id] || 520;
     modulatePitch(oscillator, oscillator.frequency.value, 0.12);
     decay(0.12, amplitude * 0.34);
+    this.applyLfo(track, time, time + voiceEnd(0.12), { oscillator, envelope, panner, baseFrequency: oscillator.frequency.value });
     oscillator.connect(envelope);
     oscillator.start(time);
     oscillator.stop(time + voiceEnd(0.12));
   }
+
+  applyLfo(track, time, stopTime, targets) {
+    const lfo = appState.channels[track.id].lfo;
+    if (!lfo || lfo.target === "off" || lfo.depth <= 0) return;
+    const context = this.context;
+    const osc = context.createOscillator();
+    osc.type = lfo.shape;
+    osc.frequency.value = Math.max(0.05, lfo.rate);
+    const gain = context.createGain();
+    const depth = lfo.depth / 100;
+
+    if (lfo.target === "pitch" && targets.oscillator) {
+      gain.gain.value = targets.baseFrequency * depth * 0.5;
+      osc.connect(gain);
+      gain.connect(targets.oscillator.frequency);
+    } else if (lfo.target === "filter" && targets.filter) {
+      gain.gain.value = Math.max(20, targets.filter.frequency.value * depth);
+      osc.connect(gain);
+      gain.connect(targets.filter.frequency);
+    } else if (lfo.target === "amp" && targets.envelope) {
+      gain.gain.value = depth * 0.6;
+      osc.connect(gain);
+      gain.connect(targets.envelope.gain);
+    } else if (lfo.target === "pan" && targets.panner) {
+      gain.gain.value = depth;
+      osc.connect(gain);
+      gain.connect(targets.panner.pan);
+    } else {
+      return;
+    }
+    osc.start(time);
+    osc.stop(stopTime);
+  }
 }
 
 const stepPercPitch = { perc: 460 };
-
-const arpPatterns = {
-  off: { label: "Off", notes: () => [0] },
-  up: { label: "Up", notes: (range) => Array.from({ length: range }, (_, octave) => octave * 12) },
-  down: { label: "Down", notes: (range) => Array.from({ length: range }, (_, octave) => (range - 1 - octave) * 12) },
-  upDown: { label: "Up&Down", notes: (range) => {
-    const up = Array.from({ length: range }, (_, octave) => octave * 12);
-    return [...up, ...up.slice(1, -1).reverse()];
-  } },
-  downUp: { label: "Down&Up", notes: (range) => {
-    const down = Array.from({ length: range }, (_, octave) => (range - 1 - octave) * 12);
-    return [...down, ...down.slice(1, -1).reverse()];
-  } },
-  random: { label: "Random", notes: (range) => Array.from({ length: range * 2 }, () => Math.floor(Math.random() * range) * 12) },
-  chord: { label: "Chord", notes: (range) => [0, 7, 12].slice(0, Math.max(1, Math.min(3, range + 1))) },
-  twoOctave: { label: "2-Oct Up", notes: (range) => Array.from({ length: Math.max(2, range) }, (_, octave) => octave * 12) }
-};
 
 const audioEngine = new GrooveboxAudio();
 
@@ -771,6 +750,7 @@ function updateSequencerTarget() {
   const track = trackDefinitions.find((item) => item.id === appState.selectedTrack);
   elements.sequencerTarget.textContent = `DECK ${deck} / ${track.label.toUpperCase()}`;
   renderEnvelope();
+  renderLfo();
   document.querySelectorAll("[data-edit-deck]").forEach((button) => {
     button.setAttribute("aria-pressed", String(button.dataset.editDeck === deck));
   });
@@ -800,7 +780,8 @@ function onSequencerStep(deckId, stepIndex) {
 }
 
 function renderPatternSelection(deckId, patternId) {
-  const picker = document.querySelector(deckId === "A" ? "#patternAPicker" : "#patternBPicker");
+  const picker = document.querySelector(`#pattern${deckId}Picker`);
+  if (!picker) return;
   const name = patternLibrary[patternId].name;
   picker.querySelector(".pattern-current").textContent = `${patternId} · ${name}`;
   if (deckId === appState.editDeck) renderSequencer();
@@ -808,11 +789,41 @@ function renderPatternSelection(deckId, patternId) {
 
 function renderActiveDeck() {
   document.querySelectorAll(".pattern-deck[data-deck]").forEach((deck) => {
-    const active = deck.dataset.deck === appState.activeDeck;
-    deck.classList.toggle("active", active);
-    deck.querySelector(".deck-status").textContent = active ? "LIVE" : "READY";
+    const deckId = deck.dataset.deck;
+    const enabled = appState.deckEnabled[deckId];
+    const active = deckId === appState.activeDeck;
+    const queued = audioEngine.pendingActiveDeck === deckId;
+    deck.classList.toggle("active", active && enabled);
+    deck.classList.toggle("disabled", !enabled);
+    deck.classList.toggle("queued", queued);
+    const status = !enabled ? "OFF" : active ? "LIVE" : queued ? "QUEUED" : "READY";
+    deck.querySelector(".deck-status").textContent = status;
     deck.querySelector(".pattern-trigger").setAttribute("aria-pressed", String(active));
+    const toggle = deck.querySelector(".deck-toggle");
+    toggle.setAttribute("aria-pressed", String(enabled));
+    toggle.textContent = enabled ? "On" : "Off";
   });
+}
+
+function setDeckEnabled(deckId, enabled) {
+  if (!enabled && deckIds.filter((id) => appState.deckEnabled[id]).length === 1) {
+    setStatus("LAST DECK STAYS ON");
+    return;
+  }
+  appState.deckEnabled[deckId] = enabled;
+  if (!enabled) {
+    if (audioEngine.pendingActiveDeck === deckId) audioEngine.pendingActiveDeck = null;
+    if (appState.activeDeck === deckId) {
+      appState.activeDeck = deckIds.find((id) => appState.deckEnabled[id]);
+      if (appState.playing) setStatus(`PLAYING · DECK ${appState.activeDeck}`);
+    }
+  } else if (!appState.playing && appState.editDeck === deckId) {
+    // Re-enabling the deck you're editing makes it live immediately
+    appState.activeDeck = deckId;
+    setStatus(`READY · DECK ${deckId}`);
+  }
+  audioEngine.applyActiveDeck();
+  renderActiveDeck();
 }
 
 function selectPattern(deckId, patternId) {
@@ -825,13 +836,11 @@ function selectPattern(deckId, patternId) {
 
 function initializeNumberPicker(picker) {
   const itemLabel = picker.dataset.itemLabel;
-  const isPatternPicker = picker.id === "patternAPicker" || picker.id === "patternBPicker";
-  const isArpPicker = picker.id === "arpeggiatorPicker";
+  const pickerDeckMatch = picker.id.match(/^pattern([A-C])Picker$/);
+  const isPatternPicker = Boolean(pickerDeckMatch);
   const items = isPatternPicker
     ? Object.keys(patternLibrary).slice(0, Number(picker.dataset.count))
-    : isArpPicker
-      ? Object.keys(arpPatterns)
-      : Array.from({ length: Number(picker.dataset.count) }, (_, index) => String(index + 1).padStart(3, "0"));
+    : Array.from({ length: Number(picker.dataset.count) }, (_, index) => String(index + 1).padStart(3, "0"));
   const trigger = picker.querySelector(".pattern-trigger");
   const current = picker.querySelector(".pattern-current");
   const menu = picker.querySelector(".pattern-menu");
@@ -840,8 +849,8 @@ function initializeNumberPicker(picker) {
   const count = picker.querySelector(".pattern-count");
   let selected = picker.dataset.initial;
 
-  const labelFor = (number) => isPatternPicker ? patternLibrary[number].name : isArpPicker ? arpPatterns[number].label : `${itemLabel} ${number}`;
-  const tagFor = (number) => isArpPicker ? number.toUpperCase() : number;
+  const labelFor = (number) => isPatternPicker ? patternLibrary[number].name : `${itemLabel} ${number}`;
+  const tagFor = (number) => number;
   const render = (query = "") => {
     const normalizedQuery = query.trim().toLowerCase();
     const matches = items.filter((number) => `${tagFor(number)} ${labelFor(number)}`.toLowerCase().includes(normalizedQuery));
@@ -869,8 +878,7 @@ function initializeNumberPicker(picker) {
     selected = option.dataset.item;
     current.textContent = `${tagFor(selected)} · ${labelFor(selected)}`;
     setOpen(false);
-    if (isPatternPicker) selectPattern(picker.id === "patternAPicker" ? "A" : "B", selected);
-    if (isArpPicker) appState.arp.style = selected;
+    if (isPatternPicker) selectPattern(pickerDeckMatch[1], selected);
   });
   menu.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
@@ -1200,6 +1208,45 @@ function renderEnvelope() {
   }
 }
 
+function renderLfo() {
+  const lfo = appState.channels[appState.selectedTrack].lfo;
+  const track = trackDefinitions.find((item) => item.id === appState.selectedTrack);
+  document.querySelector("#lfoPartLabel").textContent = track.label.toUpperCase();
+  document.querySelector("#lfoTarget").value = lfo.target;
+  document.querySelector("#lfoShape").value = lfo.shape;
+  const rate = document.querySelector("#lfoRate");
+  const depth = document.querySelector("#lfoDepth");
+  rate.value = String(lfo.rate);
+  depth.value = String(lfo.depth);
+  document.querySelector("#lfoRateValue").textContent = Number(lfo.rate).toFixed(1);
+  document.querySelector("#lfoDepthValue").textContent = String(lfo.depth);
+}
+
+function initializeLfo() {
+  const lfo = () => appState.channels[appState.selectedTrack].lfo;
+  document.querySelector("#lfoTarget").addEventListener("change", (event) => { lfo().target = event.target.value; });
+  document.querySelector("#lfoShape").addEventListener("change", (event) => { lfo().shape = event.target.value; });
+  document.querySelector("#lfoRate").addEventListener("input", (event) => {
+    lfo().rate = Number(event.target.value);
+    document.querySelector("#lfoRateValue").textContent = lfo().rate.toFixed(1);
+  });
+  document.querySelector("#lfoDepth").addEventListener("input", (event) => {
+    lfo().depth = Number(event.target.value);
+    document.querySelector("#lfoDepthValue").textContent = String(lfo().depth);
+  });
+  document.querySelector("#lfoRandomizeButton").addEventListener("click", () => {
+    const targets = ["off", "pitch", "filter", "amp", "pan"];
+    const shapes = ["sine", "triangle", "square", "sawtooth"];
+    const settings = lfo();
+    settings.target = targets[randomInt(0, targets.length - 1)];
+    settings.shape = shapes[randomInt(0, shapes.length - 1)];
+    settings.rate = Math.round((0.1 + Math.random() * 19.9) * 10) / 10;
+    settings.depth = randomInt(0, 100);
+    renderLfo();
+  });
+  renderLfo();
+}
+
 function initializeEnvelope() {
   document.querySelectorAll("[data-envelope-target]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1258,167 +1305,15 @@ function initializeSequencer() {
 function initializePatternPickers() {
   document.querySelectorAll(".pattern-picker").forEach(initializeNumberPicker);
   document.querySelectorAll(".pattern-picker").forEach((picker) => {
-    if (picker.id === "patternAPicker" || picker.id === "patternBPicker") {
-      const deck = picker.id === "patternAPicker" ? "A" : "B";
-      renderPatternSelection(deck, appState.patternIds[deck]);
-    }
+    const match = picker.id.match(/^pattern([A-C])Picker$/);
+    if (match) renderPatternSelection(match[1], appState.patternIds[match[1]]);
+  });
+  document.querySelectorAll("[data-deck-toggle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      setDeckEnabled(button.dataset.deckToggle, !appState.deckEnabled[button.dataset.deckToggle]);
+    });
   });
   renderActiveDeck();
-}
-
-function initializeArpeggiator() {
-  const rate = document.querySelector("#arpRate");
-  const range = document.querySelector("#arpRange");
-  rate.value = String(appState.arp.rate);
-  range.value = String(appState.arp.range);
-  rate.addEventListener("change", () => { appState.arp.rate = Number(rate.value); });
-  range.addEventListener("change", () => { appState.arp.range = Number(range.value); });
-}
-
-function renderSongSequence() {
-  elements.songSequence.replaceChildren();
-  if (!appState.songSequence.length) {
-    const empty = document.createElement("li");
-    empty.className = "song-empty";
-    empty.textContent = "No song entries";
-    elements.songSequence.append(empty);
-    return;
-  }
-
-  const patternIds = Object.keys(patternLibrary);
-  appState.songSequence.forEach((entry, index) => {
-    const row = document.createElement("li");
-    row.className = "song-entry";
-    row.classList.toggle("current", appState.songMode && index === appState.songIndex);
-    row.dataset.songIndex = String(index);
-
-    const number = document.createElement("span");
-    number.className = "song-entry-number";
-    number.textContent = String(index + 1).padStart(2, "0");
-
-    const patternSelect = document.createElement("select");
-    patternSelect.setAttribute("aria-label", `Song entry ${index + 1} pattern`);
-    patternIds.forEach((patternId) => {
-      const option = document.createElement("option");
-      option.value = patternId;
-      option.textContent = `${patternId} ${patternLibrary[patternId].name}`;
-      patternSelect.append(option);
-    });
-    patternSelect.value = entry.patternId;
-    patternSelect.addEventListener("change", () => {
-      entry.patternId = patternSelect.value;
-    });
-
-    const barsSelect = document.createElement("select");
-    barsSelect.setAttribute("aria-label", `Song entry ${index + 1} bars`);
-    [1, 2, 4, 8].forEach((bars) => {
-      const option = document.createElement("option");
-      option.value = String(bars);
-      option.textContent = `${bars} bar${bars === 1 ? "" : "s"}`;
-      barsSelect.append(option);
-    });
-    barsSelect.value = String(entry.bars);
-    barsSelect.addEventListener("change", () => {
-      entry.bars = Number(barsSelect.value);
-    });
-
-    const actions = document.createElement("div");
-    actions.className = "song-entry-tools";
-    const moveUp = document.createElement("button");
-    moveUp.type = "button";
-    moveUp.textContent = "↑";
-    moveUp.title = "Move song entry up";
-    moveUp.setAttribute("aria-label", `Move song entry ${index + 1} up`);
-    moveUp.disabled = index === 0;
-    moveUp.addEventListener("click", () => moveSongEntry(index, -1));
-
-    const moveDown = document.createElement("button");
-    moveDown.type = "button";
-    moveDown.textContent = "↓";
-    moveDown.title = "Move song entry down";
-    moveDown.setAttribute("aria-label", `Move song entry ${index + 1} down`);
-    moveDown.disabled = index === appState.songSequence.length - 1;
-    moveDown.addEventListener("click", () => moveSongEntry(index, 1));
-
-    const remove = document.createElement("button");
-    remove.type = "button";
-    remove.textContent = "×";
-    remove.title = "Remove song entry";
-    remove.setAttribute("aria-label", `Remove song entry ${index + 1}`);
-    remove.addEventListener("click", () => removeSongEntry(index));
-    actions.append(moveUp, moveDown, remove);
-    row.append(number, patternSelect, barsSelect, actions);
-    elements.songSequence.append(row);
-  });
-}
-
-function renderSongPosition() {
-  elements.songSequence.querySelectorAll(".song-entry").forEach((row) => {
-    row.classList.toggle("current", appState.songMode && Number(row.dataset.songIndex) === appState.songIndex);
-  });
-}
-
-function updateSongModeButton() {
-  elements.songMode.setAttribute("aria-pressed", String(appState.songMode));
-  elements.songMode.textContent = `Song Mode ${appState.songMode ? "On" : "Off"}`;
-}
-
-function setSongMode(enabled) {
-  appState.songMode = Boolean(enabled && appState.songSequence.length);
-  appState.songIndex = 0;
-  appState.songBarsElapsed = 0;
-  audioEngine.songStarted = false;
-  updateSongModeButton();
-  renderSongSequence();
-  if (!appState.playing) setStatus(appState.songMode ? "SONG READY" : "READY");
-}
-
-function loadSelectedPatternSet() {
-  appState.songSet = elements.patternSet.value;
-  appState.songSequence = makeSongSequence(appState.songSet);
-  setSongMode(false);
-}
-
-function addLivePatternToSong() {
-  appState.songSequence.push({ patternId: appState.patternIds[appState.activeDeck], bars: 4 });
-  renderSongSequence();
-}
-
-function moveSongEntry(index, offset) {
-  const nextIndex = index + offset;
-  if (nextIndex < 0 || nextIndex >= appState.songSequence.length) return;
-  const currentEntry = appState.songSequence[appState.songIndex];
-  [appState.songSequence[index], appState.songSequence[nextIndex]] = [appState.songSequence[nextIndex], appState.songSequence[index]];
-  const currentIndex = appState.songSequence.indexOf(currentEntry);
-  if (currentIndex >= 0) appState.songIndex = currentIndex;
-  renderSongSequence();
-}
-
-function removeSongEntry(index) {
-  const [removed] = appState.songSequence.splice(index, 1);
-  if (index < appState.songIndex) appState.songIndex -= 1;
-  if (!appState.songSequence.length) {
-    appState.songIndex = 0;
-    setSongMode(false);
-    return;
-  }
-  appState.songIndex = Math.min(appState.songIndex, appState.songSequence.length - 1);
-  if (removed && appState.songMode) audioEngine.songStarted = false;
-  renderSongSequence();
-}
-
-function initializeSongControls() {
-  elements.patternSet.value = appState.songSet;
-  elements.patternSet.addEventListener("change", () => { appState.songSet = elements.patternSet.value; });
-  document.querySelector("#loadPatternSetButton").addEventListener("click", loadSelectedPatternSet);
-  document.querySelector("#addSongPatternButton").addEventListener("click", addLivePatternToSong);
-  document.querySelector("#clearSongButton").addEventListener("click", () => {
-    appState.songSequence = [];
-    setSongMode(false);
-  });
-  elements.songMode.addEventListener("click", () => setSongMode(!appState.songMode));
-  updateSongModeButton();
-  renderSongSequence();
 }
 
 function clampProjectValue(value, minimum, maximum, fallback) {
@@ -1438,15 +1333,10 @@ function createProjectSnapshot() {
     patterns,
     state: {
       patternIds: { ...appState.patternIds },
+      deckEnabled: { ...appState.deckEnabled },
       activeDeck: appState.activeDeck,
       editDeck: appState.editDeck,
       beatSync: appState.beatSync,
-      arp: { ...appState.arp },
-      songSet: appState.songSet,
-      songSequence: appState.songSequence.map((entry) => ({ ...entry })),
-      songMode: appState.songMode,
-      songIndex: appState.songIndex,
-      songBarsElapsed: appState.songBarsElapsed,
       tempo: appState.tempo,
       octave: appState.octave,
       mixerMode: appState.mixerMode,
@@ -1459,6 +1349,10 @@ function createProjectSnapshot() {
     }
   };
 }
+
+const lfoRanges = { rate: [0.1, 20], depth: [0, 100] };
+const lfoTargets = ["off", "pitch", "filter", "amp", "pan"];
+const lfoShapes = ["sine", "triangle", "square", "sawtooth"];
 
 function restoreProjectSnapshot(project) {
   if (project?.version !== 1 || !project.state || !project.patterns) throw new Error("Unsupported project file");
@@ -1479,28 +1373,19 @@ function restoreProjectSnapshot(project) {
   Object.keys(patternLibrary).forEach((patternId) => delete patternLibrary[patternId]);
   Object.assign(patternLibrary, restoredPatterns);
 
-  appState.patternIds = {
-    A: validPatternId(state.patternIds?.A) ? state.patternIds.A : Object.keys(patternLibrary)[0],
-    B: validPatternId(state.patternIds?.B) ? state.patternIds.B : Object.keys(patternLibrary)[0]
-  };
-  appState.activeDeck = state.activeDeck === "B" ? "B" : "A";
-  appState.editDeck = state.editDeck === "B" ? "B" : "A";
+  const fallbackPatternId = Object.keys(patternLibrary)[0];
+  appState.patternIds = Object.fromEntries(deckIds.map((deckId) => [
+    deckId,
+    validPatternId(state.patternIds?.[deckId]) ? state.patternIds[deckId] : fallbackPatternId
+  ]));
+  appState.deckEnabled = Object.fromEntries(deckIds.map((deckId) => [deckId, state.deckEnabled?.[deckId] !== false]));
+  if (!deckIds.some((deckId) => appState.deckEnabled[deckId])) appState.deckEnabled.A = true;
+  appState.activeDeck = deckIds.includes(state.activeDeck) ? state.activeDeck : "A";
+  if (!appState.deckEnabled[appState.activeDeck]) {
+    appState.activeDeck = deckIds.find((deckId) => appState.deckEnabled[deckId]);
+  }
+  appState.editDeck = deckIds.includes(state.editDeck) ? state.editDeck : "A";
   appState.beatSync = Boolean(state.beatSync);
-  appState.arp = {
-    style: Object.hasOwn(arpPatterns, state.arp?.style) ? state.arp.style : "off",
-    rate: [0.5, 1, 2].includes(Number(state.arp?.rate)) ? Number(state.arp.rate) : 1,
-    range: [1, 2, 3].includes(Number(state.arp?.range)) ? Number(state.arp.range) : 1
-  };
-  appState.songSet = Object.hasOwn(patternSets, state.songSet) ? state.songSet : "roots";
-  appState.songSequence = Array.isArray(state.songSequence)
-    ? state.songSequence.filter((entry) => validPatternId(entry.patternId)).map((entry) => ({
-      patternId: entry.patternId,
-      bars: [1, 2, 4, 8].includes(Number(entry.bars)) ? Number(entry.bars) : 4
-    }))
-    : makeSongSequence(appState.songSet);
-  appState.songIndex = appState.songSequence.length ? Math.min(Math.max(0, Number(state.songIndex) || 0), appState.songSequence.length - 1) : 0;
-  appState.songBarsElapsed = Math.max(0, Number(state.songBarsElapsed) || 0);
-  appState.songMode = Boolean(state.songMode && appState.songSequence.length);
   appState.tempo = clampProjectValue(state.tempo, 60, 180, 126);
   appState.octave = clampProjectValue(state.octave, -2, 2, 0);
   appState.mixerMode = ["level", "reverb", "delay", "pan", "mfxSend"].includes(state.mixerMode) ? state.mixerMode : "level";
@@ -1539,33 +1424,28 @@ function restoreProjectSnapshot(project) {
       }
     }
     if (["pitch", "filter", "amp"].includes(saved.envelope?.target)) channel.envelope.target = saved.envelope.target;
+    if (saved.lfo) {
+      channel.lfo.rate = clampProjectValue(saved.lfo.rate, lfoRanges.rate[0], lfoRanges.rate[1], channel.lfo.rate);
+      channel.lfo.depth = clampProjectValue(saved.lfo.depth, lfoRanges.depth[0], lfoRanges.depth[1], channel.lfo.depth);
+      if (lfoTargets.includes(saved.lfo.target)) channel.lfo.target = saved.lfo.target;
+      if (lfoShapes.includes(saved.lfo.shape)) channel.lfo.shape = saved.lfo.shape;
+    }
   }
 
   audioEngine.stop();
   appState.playing = false;
-  appState.patternIds.A = validPatternId(appState.patternIds.A) ? appState.patternIds.A : Object.keys(patternLibrary)[0];
-  appState.patternIds.B = validPatternId(appState.patternIds.B) ? appState.patternIds.B : Object.keys(patternLibrary)[0];
-  appState.songSequence = appState.songSequence.filter((entry) => validPatternId(entry.patternId));
-  appState.songIndex = appState.songSequence.length ? Math.min(appState.songIndex, appState.songSequence.length - 1) : 0;
 
   elements.play.setAttribute("aria-pressed", "false");
-  elements.patternSet.value = appState.songSet;
-  document.querySelector("#arpRate").value = String(appState.arp.rate);
-  document.querySelector("#arpRange").value = String(appState.arp.range);
-  const arpCurrent = document.querySelector("#arpeggiatorPicker .pattern-current");
-  arpCurrent.textContent = `${appState.arp.style.toUpperCase()} · ${arpPatterns[appState.arp.style].label}`;
   elements.projectStatus.textContent = "RECALLED";
   document.querySelector("#mfxType").value = appState.mfxType;
   setBeatSync(appState.beatSync);
   setMixerMode(appState.mixerMode);
   renderMasterParameter();
   renderControlDials();
-  renderPatternSelection("A", appState.patternIds.A);
-  renderPatternSelection("B", appState.patternIds.B);
+  deckIds.forEach((deckId) => renderPatternSelection(deckId, appState.patternIds[deckId]));
   renderActiveDeck();
   updateSequencerTarget();
-  updateSongModeButton();
-  renderSongSequence();
+  renderLfo();
   setStatus("STOPPED");
   audioEngine.applyActiveDeck();
   audioEngine.applyMultiFx(appState.mfxType);
@@ -1674,10 +1554,9 @@ function initialize() {
   initializeSequencer();
   initializePatternPickers();
   initializeEnvelope();
-  initializeSongControls();
+  initializeLfo();
   initializeProjectControls();
   initializeRandomizers();
-  initializeArpeggiator();
   document.querySelectorAll("[data-mixer-mode]").forEach((button) => {
     button.addEventListener("click", () => setMixerMode(button.dataset.mixerMode));
   });
