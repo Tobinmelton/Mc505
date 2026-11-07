@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MC-505 Concept 1 Mockup</title>
+    <style>
+      :root {
+        --bg: #0b1014;
+        --panel: #1e262c;
+        --panel-2: #2b3339;
+        --metal: #a5adb3;
+        --guest: #d9e0e7;
+        --accent: #ffb95f;
+        --accent-strong: #f39b2d;
+        --green: #8af5a2;
+        --red: #ff6e6e;
+        --text: #edf3f8;
+        --muted: #a4afba;
+        --step-off: #313d47;
+        --step-on: #f6cb6a;
+        --shadow: rgba(0, 0, 0, 0.45);
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background: linear-gradient(180deg, #0a0e12, #181e25 38%, #0a0d11);
+        color: var(--text);
+        font-family: "Segoe UI", Tahoma, sans-serif;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+        padding: 20px;
+      }
+
+      .device {
+        width: min(1120px, 95vw);
+        min-height: 660px;
+        background: linear-gradient(180deg, #232d34, #171d22 65%, #11181d);
+        border: 3px solid #394750;
+        border-radius: 18px;
+        padding: 16px 18px 18px;
+        box-shadow: 0 28px 60px rgba(0, 0, 0, 0.5), inset 0 2px 0 rgba(255,255,255,0.06), inset 0 -5px 0 rgba(0,0,0,0.32);
+        position: relative;
+      }
+
+      .device::before {
+        content: "";
+        position: absolute;
+        inset: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.06);
+        pointer-events: none;
+      }
+
+      .top-row {
+        display: grid;
+        grid-template-columns: 1.1fr 1.6fr 1.1fr;
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+
+      .panel {
+        background: linear-gradient(180deg, rgba(196,203,208,0.05), rgba(6,9,12,0.18));
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 12px 12px 10px;
+        min-height: 120px;
+        position: relative;
+      }
+
+      .panel h3 {
+        position: absolute;
+        top: 8px;
+        left: 14px;
+        margin: 0;
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .master-zone, .filter-zone {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 18px;
+        padding-top: 28px;
+      }
+
+      .knob-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .knob {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #f3f6f9 0%, #8b9299 12%, #3d4349 29%, #1a1d22 72%, #0d1014 100%);
+        border: 3px solid rgba(255,255,255,0.12);
+        position: relative;
+        box-shadow: inset 0 1px 4px rgba(255,255,255,0.22), 0 5px 11px rgba(0,0,0,0.28);
+      }
+
+      .knob::before {
+        content: "";
+        position: absolute;
+        width: 2px;
+        height: 16px;
+        border-radius: 2px;
+        background: var(--guest);
+        left: 50%;
+        top: 7px;
+        transform: translateX(-50%) rotate(45deg);
+        transform-origin: center 18px;
+      }
+
+      .knob-label {
+        font-size: 9px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .switch-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .switch {
+        width: 70px;
+        height: 28px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #2c343a, #11161b);
+        border: 1px solid rgba(255,255,255,0.08);
+        position: relative;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+      }
+
+      .switch::before {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 6px;
+        width: 26px;
+        height: 20px;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #e5ebf0, #7b8389);
+        box-shadow: inset 0 0 3px rgba(255,255,255,0.45);
+      }
+
+      .switch.active::before {
+        left: 36px;
+      }
+
+      .switch-label {
+        font-size: 9px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .sample-panel {
+        background: linear-gradient(180deg, rgba(29,35,39,0.96), rgba(13,17,20,0.96));
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 10px 12px 12px;
+        margin-bottom: 12px;
+      }
+
+      .panel-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        gap: 10px;
+      }
+
+      .panel-head-label {
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .loader-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .load-btn, .file-btn {
+        background: linear-gradient(180deg, #3b474f, #171d22);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: var(--text);
+        border-radius: 8px;
+        font-size: 9px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 8px 10px;
+        cursor: pointer;
+      }
+
+      .file-btn {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+      }
+
+      .file-btn input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+      }
+
+      .sample-bank {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 6px;
+        margin-top: 10px;
+      }
+
+      .track-sample {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 8px;
+        padding: 6px 4px;
+        min-height: 54px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        text-align: center;
+      }
+
+      .track-sample-name {
+        font-size: 8px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .track-sample-file {
+        font-size: 8px;
+        color: var(--text);
+        word-break: break-word;
+        line-height: 1.2;
+      }
+
+      .mixer-shell {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: 12px;
+        margin-top: 8px;
+      }
+
+      .effect-panel {
+        background: linear-gradient(180deg, rgba(27,32,36,0.95), rgba(14,18,21,0.96));
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 8px 8px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .effect-panel-title {
+        font-size: 9px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+        text-align: center;
+        margin-bottom: 2px;
+      }
+
+      .effect-btn {
+        width: 100%;
+        background: linear-gradient(180deg, #363f46, #1b2126);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: var(--text);
+        border-radius: 8px;
+        font-size: 9px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 8px 6px;
+        cursor: pointer;
+        transition: all 0.16s ease;
+      }
+
+      .effect-btn.active {
+        background: linear-gradient(180deg, #d1892a, #b8681d);
+        color: #221607;
+        font-weight: 700;
+        border-color: rgba(255,255,255,0.18);
+      }
+
+      .mixer {
+        background: linear-gradient(180deg, rgba(28,34,38,0.95), rgba(14,17,20,0.96));
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 10px 12px 12px;
+      }
+
+      .mixer-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 4px;
+      }
+
+      .track {
+        background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(0,0,0,0.16));
+        border: 1px solid rgba(255,255,255,0.05);
+        border-radius: 8px;
+        padding: 4px 3px 6px;
+        min-width: 0;
+        width: 100%;
+        max-width: 52px;
+        justify-self: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease;
+      }
+
+      .track.active {
+        border-color: rgba(255,184,94,0.8);
+        box-shadow: inset 0 0 0 1px rgba(255,184,94,0.2), 0 0 18px rgba(255,184,94,0.12);
+      }
+
+      .track-name {
+        font-size: 8px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .track .mini-btns {
+        display: flex;
+        gap: 4px;
+      }
+
+      .mini-btn {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: linear-gradient(180deg, #353d43, #151b20);
+        color: var(--text);
+        font-size: 7px;
+        line-height: 1;
+        padding: 0;
+        cursor: pointer;
+      }
+
+      .mini-btn.active {
+        background: linear-gradient(180deg, #8af5a2, #4ebf6a);
+        color: #0d2312;
+      }
+
+      .slider-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .slider-shell {
+        width: 10px;
+        height: 68px;
+        border-radius: 7px;
+        background: linear-gradient(180deg, #2c353b, #11171b);
+        border: 1px solid rgba(255,255,255,0.08);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .slider-fill {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 62%;
+        border-radius: 7px;
+        background: linear-gradient(180deg, var(--accent), #c97722);
+      }
+
+      .value-readout {
+        font-size: 7px;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+      }
+
+      .track .type-tag {
+        font-size: 7px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .sequencer {
+        margin-top: 16px;
+        background: linear-gradient(180deg, rgba(32,38,42,0.96), rgba(15,20,23,0.96));
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 10px 12px 12px;
+      }
+
+      .seq-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        padding: 0 4px;
+      }
+
+      .seq-label {
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .octave-controls {
+        display: flex;
+        gap: 8px;
+      }
+
+      .oct-btn {
+        height: 28px;
+        min-width: 54px;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 8px;
+        background: linear-gradient(180deg, #3a474f, #181d21);
+        color: var(--text);
+        font-size: 9px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+
+      .sequence {
+        display: grid;
+        grid-template-columns: repeat(16, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .step {
+        height: 54px;
+        border-radius: 8px;
+        background: linear-gradient(180deg, var(--step-off), #1d2328);
+        border: 1px solid rgba(255,255,255,0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .step strong {
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        color: var(--muted);
+      }
+
+      .step.active {
+        background: linear-gradient(180deg, var(--step-on), #c7852e);
+        box-shadow: 0 0 18px rgba(246,203,106,0.32);
+      }
+
+      .step.active::after {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.22);
+      }
+
+      .step.active strong {
+        color: #2a1405;
+        font-weight: 700;
+      }
+
+      @media (max-width: 860px) {
+        .top-row {
+          grid-template-columns: 1fr;
+        }
+
+        .mixer-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .effect-panel {
+          flex-direction: row;
+          justify-content: space-between;
+        }
+
+        .mixer-grid {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .sequence {
+          grid-template-columns: repeat(8, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="device">
+      <div class="top-row">
+        <div class="panel">
+          <h3>Output</h3>
+          <div class="master-zone">
+            <div class="knob-wrap">
+              <div class="knob" style="transform: rotate(36deg);"></div>
+              <div class="knob-label">Main</div>
+            </div>
+            <div class="knob-wrap">
+              <div class="knob" style="transform: rotate(58deg);"></div>
+              <div class="knob-label">Low Boost</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Filter</h3>
+          <div class="filter-zone">
+            <div class="knob-wrap">
+              <div class="knob" style="transform: rotate(-18deg);"></div>
+              <div class="knob-label">Cutoff</div>
+            </div>
+            <div class="knob-wrap">
+              <div class="knob" style="transform: rotate(20deg);"></div>
+              <div class="knob-label">Res</div>
+            </div>
+            <div class="switch-wrap">
+              <div class="switch active"></div>
+              <div class="switch-label">HP/LP</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Pattern</h3>
+          <div class="master-zone">
+            <div class="knob-wrap">
+              <div class="knob" style="transform: rotate(12deg);"></div>
+              <div class="knob-label">Tempo</div>
+            </div>
+            <div class="knob-wrap">
+              <div class="knob" style="transform: rotate(-15deg);"></div>
+              <div class="knob-label">Swing</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sample-panel">
+        <div class="panel-head">
+          <div class="panel-head-label">Sample Loader</div>
+        </div>
+        <div class="loader-controls">
+          <button class="load-btn" type="button" id="loadDemoKitBtn">Load public TR-808 demo kit</button>
+          <label class="file-btn">
+            Load local sample set
+            <input id="sampleFileInput" type="file" accept=".wav,.aiff,.mp3,.flac" multiple />
+          </label>
+        </div>
+        <div class="sample-bank">
+          <div class="track-sample"><div class="track-sample-name">BD</div><div class="track-sample-file">kick.wav</div></div>
+          <div class="track-sample"><div class="track-sample-name">SD</div><div class="track-sample-file">snare.wav</div></div>
+          <div class="track-sample"><div class="track-sample-name">CL</div><div class="track-sample-file">clap.wav</div></div>
+          <div class="track-sample"><div class="track-sample-name">HH</div><div class="track-sample-file">hh.wav</div></div>
+          <div class="track-sample"><div class="track-sample-name">Tom</div><div class="track-sample-file">tom.wav</div></div>
+          <div class="track-sample"><div class="track-sample-name">Perc</div><div class="track-sample-file">perc.wav</div></div>
+          <div class="track-sample"><div class="track-sample-name">Bass</div><div class="track-sample-file">bass.wav</div></div>
+        </div>
+      </div>
+
+      <div class="mixer-shell">
+        <div class="effect-panel">
+          <div class="effect-panel-title">FX</div>
+          <button class="effect-btn active" data-effect="level">Level</button>
+          <button class="effect-btn" data-effect="reverb">Reverb</button>
+          <button class="effect-btn" data-effect="delay">Delay</button>
+          <button class="effect-btn" data-effect="pan">Pan</button>
+        </div>
+
+        <div class="mixer">
+          <div class="mixer-grid">
+            <div class="track active" data-track="BD" data-level="74" data-reverb="46" data-delay="33" data-pan="58">
+              <div class="track-name">BD</div>
+              <div class="mini-btns">
+                <button class="mini-btn active" type="button">M</button>
+                <button class="mini-btn" type="button">S</button>
+              </div>
+              <div class="slider-block">
+                <div class="slider-shell"><div class="slider-fill" style="height: 74%"></div></div>
+                <div class="value-readout">74</div>
+              </div>
+              <div class="type-tag">Lvl</div>
+            </div>
+
+            <div class="track" data-track="SD" data-level="56" data-reverb="62" data-delay="41" data-pan="52">
+              <div class="track-name">SD</div>
+              <div class="mini-btns">
+                <button class="mini-btn" type="button">M</button>
+                <button class="mini-btn" type="button">S</button>
+              </div>
+              <div class="slider-block">
+                <div class="slider-shell"><div class="slider-fill" style="height: 56%"></div></div>
+                <div class="value-readout">56</div>
+              </div>
+              <div class="type-tag">Lvl</div>
+            </div>
+
+            <div class="track active" data-track="CL" data-level="68" data-reverb="44" data-delay="50" data-pan="48">
+              <div class="track-name">CL</div>
+              <div class="mini-btns">
+                <button class="mini-btn active" type="button">M</button>
+                <button class="mini-btn" type="button">S</button>
+              </div>
+              <div class="slider-block">
+                <div class="slider-shell"><div class="slider-fill" style="height: 68%"></div></div>
+                <div class="value-readout">68</div>
+              </div>
+              <div class="type-tag">Lvl</div>
+            </div>
+
+            <div class="track" data-track="HH" data-level="60" data-reverb="54" data-delay="44" data-pan="63">
+              <div class="track-name">HH</div>
+              <div class="mini-btns">
+                <button class="mini-btn" type="button">M</button>
+                <button class="mini-btn active" type="button">S</button>
+              </div>
+              <div class="slider-block">
+                <div class="slider-shell"><div class="slider-fill" style="height: 60%"></div></div>
+                <div class="value-readout">60</div>
+              </div>
+              <div class="type-tag">Lvl</div>
+            </div>
+
+            <div class="track" data-track="Tom" data-level="64" data-reverb="51" data-delay="38" data-pan="55">
+              <div class="track-name">Tom</div>
+              <div class="mini-btns">
+                <button class="mini-btn" type="button">M</button>
+                <button class="mini-btn" type="button">S</button>
+              </div>
+              <div class="slider-block">
+                <div class="slider-shell"><div class="slider-fill" style="height: 64%"></div></div>
+                <div class="value-readout">64</div>
+              </div>
+              <div class="type-tag">Lvl</div>
+            </div>
+
+            <div class="track" data-track="Perc" data-level="49" data-reverb="58" data-delay="66" data-pan="44">
+              <div class="track-name">Perc</div>
+              <div class="mini-btns">
+                <button class="mini-btn active" type="button">M</button>
+                <button class="mini-btn" type="button">S</button>
+              </div>
+              <div class="slider-block">
+                <div class="slider-shell"><div class="slider-fill" style="height: 49%"></div></div>
+                <div class="value-readout">49</div>
+              </div>
+              <div class="type-tag">Lvl</div>
+            </div>
+
+            <div class="track" data-track="Bass" data-level="71" data-reverb="53" data-delay="58" data-pan="65">
+              <div class="track-name">Bass</div>
+              <div class="mini-btns">
+                <button class="mini-btn" type="button">M</button>
+                <button class="mini-btn" type="button">S</button>
+              </div>
+              <div class="slider-block">
+                <div class="slider-shell"><div class="slider-fill" style="height: 71%"></div></div>
+                <div class="value-readout">71</div>
+              </div>
+              <div class="type-tag">Lvl</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sequencer">
+        <div class="seq-head">
+          <div class="seq-label">16-Step Sequencer</div>
+          <div class="octave-controls">
+            <button class="oct-btn" type="button">- Oct</button>
+            <button class="oct-btn" type="button">+ Oct</button>
+          </div>
+        </div>
+        <div class="sequence">
+          <div class="step active"><strong>1</strong></div>
+          <div class="step"><strong>2</strong></div>
+          <div class="step"><strong>3</strong></div>
+          <div class="step active"><strong>4</strong></div>
+          <div class="step"><strong>5</strong></div>
+          <div class="step active"><strong>6</strong></div>
+          <div class="step"><strong>7</strong></div>
+          <div class="step active"><strong>8</strong></div>
+          <div class="step"><strong>9</strong></div>
+          <div class="step active"><strong>10</strong></div>
+          <div class="step"><strong>11</strong></div>
+          <div class="step active"><strong>12</strong></div>
+          <div class="step"><strong>13</strong></div>
+          <div class="step active"><strong>14</strong></div>
+          <div class="step"><strong>15</strong></div>
+          <div class="step active"><strong>16</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const effectLabels = {
+        level: 'Lvl',
+        reverb: 'Rev',
+        delay: 'Dly',
+        pan: 'Pan'
+      };
+
+      function updateEffectState(effect) {
+        document.querySelectorAll('.effect-btn').forEach((button) => {
+          button.classList.toggle('active', button.dataset.effect === effect);
+        });
+
+        document.querySelectorAll('.track').forEach((track) => {
+          const value = track.dataset[effect] || 50;
+          const fill = track.querySelector('.slider-fill');
+          const valueReadout = track.querySelector('.value-readout');
+          const tag = track.querySelector('.type-tag');
+
+          fill.style.height = `${value}%`;
+          valueReadout.textContent = value;
+          tag.textContent = effectLabels[effect] || 'Lvl';
+        });
+      }
+
+      const sampleMap = {
+        BD: 'TR-808 Kick',
+        SD: 'TR-808 Snare',
+        CL: 'TR-808 Clap',
+        HH: 'TR-808 Hat',
+        Tom: 'TR-808 Tom',
+        Perc: 'TR-808 Perc',
+        Bass: 'TR-808 Bass'
+      };
+
+      function setSampleNames(list) {
+        const sampleFiles = document.querySelectorAll('.track-sample-file');
+        const labels = Array.from(sampleFiles);
+
+        list.forEach((fileName, index) => {
+          if (labels[index]) {
+            labels[index].textContent = fileName;
+          }
+        });
+      }
+
+      document.getElementById('loadDemoKitBtn').addEventListener('click', () => {
+        const publicKit = [
+          'TR-808 Kick.wav',
+          'TR-808 Snare.wav',
+          'TR-808 Clap.wav',
+          'TR-808 Hat.wav',
+          'TR-808 Tom.wav',
+          'TR-808 Perc.wav',
+          'TR-808 Bass.wav'
+        ];
+        setSampleNames(publicKit);
+      });
+
+      document.getElementById('sampleFileInput').addEventListener('change', (event) => {
+        const files = Array.from(event.target.files || []).slice(0, 7);
+        const names = files.map((file) => file.name || 'sample.wav');
+        while (names.length < 7) names.push('empty');
+        setSampleNames(names);
+      });
+
+      document.querySelectorAll('.effect-btn').forEach((button) => {
+        button.addEventListener('click', () => updateEffectState(button.dataset.effect));
+      });
+
+      document.querySelectorAll('.track').forEach((track) => {
+        track.addEventListener('click', () => {
+          document.querySelectorAll('.track').forEach((item) => item.classList.remove('active'));
+          track.classList.add('active');
+        });
+      });
+
+      document.querySelectorAll('.step').forEach((step) => {
+        step.addEventListener('click', () => step.classList.toggle('active'));
+      });
+
+      document.querySelectorAll('.mini-btn').forEach((button) => {
+        button.addEventListener('click', (event) => {
+          event.stopPropagation();
+          button.classList.toggle('active');
+        });
+      });
+
+      updateEffectState('level');
+    </script>
+  </body>
+</html>

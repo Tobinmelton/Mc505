@@ -1,0 +1,40 @@
+You are a senior software designer with a particular proficiency with writing software for hardware musical devices and also recreating software versions of them. We've been given an assignment to recreate a groove box that was made in the past called the MC 505 by roland as a virtual instrument. We would like to recreate this as an HTML document with JavaScript and any libraries that are needed. If that is not possible we would like to try to recreate it with python.
+
+The major elements of this design are the following as well as their relative positions in the user interface
+
+Ui image:
+
+https://www.polynominal.com/roland-mc505/assets/images/mc505-824x527.jpg
+
+Sequencer:
+At the very bottom is a 16 step sequencer
+A button allows you to raise or lower the octave for any pattern that is playing. We will work on designing the pattern section of the application at a later time.
+Mixer:
+Directly above the sequencer is the mixer
+There is a seven-part mixer that corresponds with different patches.
+Each of the seven pieces of the mixer correspond to your traditional drum machine settings such as bass drum snare drum clap etc
+The mixer itself is multi-purpose with a button that changes not just the volume of the sample but also effects 
+Each of the seven tracks also have an option to mute individually
+The effects that can be implemented for each slider is 
+Level 
+ reverb
+ delay
+Pan
+At the upper left is the main volume and to the immediate right is another knob that controls the low boost of the main channel output 
+There are two filter knobs on the upper right one controls cut off and the other controls resonance 
+There is a button next to them that allows you to switch between high pass and low pass or notch
+
+
+Before any coding happens I want you to generate five separate user interface previews for us to pick from and then also customize so that we might design the prototype interface. We will be adding a number of features later including the ability to perform a wide variety of different arpeggio options, as well as a large variety of patterns that can be accessed via selector of some sort we can design later.
+
+
+
+
+
+
+
+
+
+
+
+

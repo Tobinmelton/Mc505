@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MC-505 Groovebox</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=DM+Mono:wght@400;500&family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+    :root {
+      color-scheme: dark;
+      --page: #111615;
+      --page-glow: #26312a;
+      --shell: #303735;
+      --shell-edge: #69716b;
+      --surface: #202624;
+      --surface-raised: #39413d;
+      --ink: #f1f2e9;
+      --muted: #a0aaa1;
+      --accent: #f4b84c;
+      --accent-ink: #271a05;
+      --good: #8ed3a2;
+      --line: rgba(239, 243, 233, .13);
+      --display: #c8ecad;
+      --font: "DM Mono", monospace;
+      --heading: "Barlow Condensed", sans-serif;
+      --radius: 5px;
+      --shadow: 0 28px 70px rgba(0, 0, 0, .48);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 22px clamp(12px, 3vw, 48px) 28px;
+      color: #e9eee8;
+      background: radial-gradient(ellipse at 50% 0%, var(--page-glow), transparent 52%), var(--page);
+      font-family: "Space Grotesk", sans-serif;
+      transition: background .25s ease;
+    }
+
+    .page-head {
+      max-width: 1600px;
+      margin: 0 auto 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 24px;
+    }
+
+    .eyebrow, .kicker, .micro-label {
+      font-family: var(--font);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+    }
+
+    .eyebrow { margin: 0 0 7px; color: #aab8a8; font-size: 10px; }
+    h1 { margin: 0; font-size: clamp(24px, 4vw, 38px); line-height: 1; font-weight: 600; }
+    .page-mark { font: 11px var(--font); color: #8e9b91; white-space: nowrap; }
+    .page-actions { display: flex; align-items: center; gap: 6px; }
+    .page-actions button, .song-tools button { min-height: 27px; padding: 0 8px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 3px; font: 8px var(--font); text-transform: uppercase; cursor: pointer; }
+    .page-actions button:disabled { opacity: .45; cursor: default; }
+    .project-status { min-width: 54px; color: var(--muted); font: 7px var(--font); text-align: right; text-transform: uppercase; }
+
+    .instrument {
+      max-width: 1600px;
+      margin: auto;
+      padding: 14px;
+      color: var(--ink);
+      background: linear-gradient(145deg, color-mix(in srgb, var(--shell) 96%, white), var(--shell) 50%, color-mix(in srgb, var(--shell) 84%, black));
+      border: 1px solid var(--shell-edge);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.11), inset 0 -3px 0 rgba(0,0,0,.28);
+      font-family: var(--font);
+      transition: background .25s ease, border .25s ease, border-radius .25s ease;
+    }
+
+    .topline {
+      min-height: 38px;
+      margin: 0 0 8px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand { display: flex; align-items: baseline; gap: 9px; }
+    .brand strong { font: 700 23px var(--heading); letter-spacing: .04em; }
+    .brand span { color: var(--muted); font-size: 9px; letter-spacing: .14em; }
+
+    .transport { display: flex; align-items: center; gap: 7px; }
+    .transport button, .octave button {
+      min-height: 30px;
+      padding: 0 12px;
+      color: var(--ink);
+      background: linear-gradient(180deg, var(--surface-raised), var(--surface));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      font: 10px var(--font);
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .transport .play { color: var(--accent-ink); background: var(--accent); border-color: transparent; font-weight: 600; }
+    .transport .play[aria-pressed="true"] { color: var(--ink); background: #a04c38; }
+    .status { justify-self: end; color: var(--muted); font-size: 9px; text-align: right; }
+    .status strong { display: block; color: var(--display); font-size: 10px; font-weight: 500; }
+
+    .upper-controls {
+      display: grid;
+      grid-template-columns: 1.05fr .55fr .85fr 1.1fr 1.6fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .control-panel {
+      min-height: 96px;
+      padding: 9px 10px 10px;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--surface-raised) 45%, transparent), var(--surface));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .output-panel { min-height: 160px; display: flex; flex-direction: column; }
+    .output-panel > .control-row { flex: 1; }
+    .tempo-panel, .filter-panel, .envelope-panel, .performance-panel { display: flex; flex-direction: column; }
+    .tempo-panel .tempo-control, .filter-panel .control-row, .envelope-controls, .performance-fields { flex: 1; }
+
+    .panel-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 9px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .panel-title span:last-child { color: var(--accent); font-size: 8px; }
+    .control-row { display: flex; align-items: center; justify-content: space-evenly; gap: 10px; }
+    .dial-wrap { min-width: 54px; display: grid; justify-items: center; gap: 5px; }
+    .dial {
+      width: 42px;
+      aspect-ratio: 1;
+      position: relative;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 50%;
+      background: radial-gradient(circle at 32% 27%, #9da59b, #5a625c 26%, #272d29 68%, #131715 72%);
+      box-shadow: inset 0 2px 3px rgba(255,255,255,.24), 0 4px 7px rgba(0,0,0,.36);
+    }
+    .dial[role="slider"] { cursor: ns-resize; touch-action: none; }
+    .dial[role="slider"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    .dial::after {
+      position: absolute;
+      width: 2px;
+      height: 13px;
+      top: 5px;
+      left: calc(50% - 1px);
+      background: var(--accent);
+      border-radius: 2px;
+      content: "";
+      transform: rotate(var(--knob-angle, 27deg));
+      transform-origin: 1px 18px;
+    }
+    .dial-name { color: var(--muted); font-size: 8px; text-transform: uppercase; white-space: nowrap; }
+    .dial.small { width: 28px; }
+    .dial.small::after { height: 9px; top: 3px; transform-origin: 1px 12px; }
+    .mfx-amount { min-width: 34px; }
+    .master-processing { margin-top: 6px; padding-top: 6px; display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--line); }
+    .master-knob { width: 42px; flex: 0 0 auto; cursor: ns-resize; touch-action: none; }
+    .master-knob::after { transform: rotate(var(--knob-angle, 0deg)); }
+    .master-knob:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    .master-setting { position: relative; min-width: 0; flex: 1; }
+    .master-mode-trigger { width: 100%; min-height: 27px; padding: 0 7px; display: flex; align-items: center; justify-content: space-between; gap: 5px; color: var(--ink); background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius); font: 8px var(--font); text-align: left; cursor: pointer; }
+    .master-mode-trigger span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .master-mode-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .master-mode-value { min-height: 28px; padding: 4px 7px; display: block; color: var(--display); background: #111813; border: 1px solid var(--line); border-top: 0; font: 11px var(--font); text-align: right; }
+    .master-mode-menu { position: absolute; z-index: 40; bottom: calc(100% + 5px); left: 0; width: 100%; padding: 4px; background: var(--shell); border: 1px solid var(--shell-edge); border-radius: var(--radius); box-shadow: 0 12px 30px rgba(0,0,0,.45); }
+    .master-mode-menu[hidden] { display: none; }
+    .master-mode-option { width: 100%; min-height: 28px; padding: 0 7px; color: var(--ink); background: transparent; border: 0; border-radius: 3px; font: 8px var(--font); text-align: left; cursor: pointer; }
+    .master-mode-option:hover, .master-mode-option:focus-visible, .master-mode-option[aria-selected="true"] { color: var(--accent-ink); background: var(--accent); outline: none; }
+    .tempo-control { min-height: 54px; display: flex; align-items: center; justify-content: center; gap: 7px; }
+    .tempo-dial { width: 46px; flex: 0 0 auto; }
+    .tempo-readout { min-width: 68px; padding: 5px 7px; display: flex; align-items: baseline; justify-content: space-between; gap: 5px; background: #111813; border: 1px solid var(--line); box-shadow: inset 0 1px 5px rgba(0,0,0,.5); }
+    .tempo-value { color: var(--display); font: 16px var(--font); }
+    .tempo-unit { color: var(--muted); font: 8px var(--font); }
+    .filter-options { display: flex; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .filter-options button { padding: 6px 8px; color: var(--muted); background: transparent; border: 0; border-radius: 3px; font: 8px var(--font); text-transform: uppercase; cursor: pointer; }
+    .filter-options button[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent); }
+    .envelope-targets { display: flex; gap: 3px; margin-bottom: 5px; padding: 3px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+    .envelope-targets button { flex: 1; min-height: 21px; padding: 0 3px; color: var(--muted); background: transparent; border: 0; border-radius: 3px; font: 7px var(--font); text-transform: uppercase; cursor: pointer; }
+    .envelope-targets button[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent); }
+    .envelope-controls { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; align-items: end; }
+    .envelope-control { min-width: 0; display: grid; justify-items: center; gap: 3px; }
+    .envelope-control output { color: var(--display); font: 7px var(--font); }
+    .envelope-control input { width: 14px; height: 55px; margin: 0; writing-mode: vertical-lr; direction: rtl; accent-color: var(--accent); cursor: ns-resize; }
+    .envelope-control label { color: var(--muted); font: 7px var(--font); text-transform: uppercase; }
+    .performance-fields { display: grid; grid-template-columns: 1.7fr .9fr; align-items: start; gap: 8px; }
+    .reserved-field { min-width: 0; display: grid; grid-template-rows: 16px 34px 30px; align-items: start; align-content: start; gap: 4px; }
+    .reserved-label { display: flex; align-items: center; }
+    .arp-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; align-self: end; }
+    .arp-settings select { width: 100%; min-height: 27px; padding: 0 5px; color: var(--display); background: var(--surface); border: 1px solid var(--line); border-radius: 3px; font: 8px var(--font); }
+    .pattern-deck .pattern-picker { align-self: end; }
+    .reserved-field > .pattern-picker { align-self: start; margin-top: 16px; }
+    .arp-settings { align-self: start; }
+    .reserved-label { display: block; margin-bottom: 7px; color: var(--muted); font-size: 8px; text-transform: uppercase; letter-spacing: .08em; }
+    .pattern-decks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+    .pattern-deck { min-width: 0; padding: 3px; border: 1px solid transparent; border-radius: 3px; }
+    .pattern-deck.active { border-color: color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+    .deck-label { margin-bottom: 3px; display: flex; justify-content: space-between; gap: 3px; color: var(--muted); font-size: 7px; text-transform: uppercase; }
+    .deck-status { color: var(--muted); font: 6px var(--font); }
+    .pattern-deck.active .deck-status { color: var(--good); }
+    .pattern-picker { position: relative; }
+    .pattern-trigger { width: 100%; min-height: 29px; padding: 0 7px; display: flex; align-items: center; justify-content: space-between; gap: 5px; color: var(--display); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); font: 8px var(--font); text-align: left; cursor: pointer; }
+    .pattern-trigger span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pattern-trigger span:last-child { color: var(--muted); font-size: 12px; }
+    .pattern-menu { position: absolute; z-index: 30; top: calc(100% + 7px); left: 0; width: min(360px, calc(100vw - 40px)); padding: 10px; color: var(--ink); background: var(--shell); border: 1px solid var(--shell-edge); border-radius: var(--radius); box-shadow: 0 16px 38px rgba(0,0,0,.48); }
+    .pattern-menu[hidden] { display: none; }
+    .reserved-field:last-child .pattern-menu { right: 0; left: auto; }
+    .pattern-deck:last-child .pattern-menu { right: 0; left: auto; }
+    .pattern-menu-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 9px; }
+    .pattern-menu-head strong { font: 600 12px var(--heading); }
+    .pattern-count { color: var(--muted); font: 8px var(--font); }
+    .pattern-search { width: 100%; min-height: 32px; padding: 0 9px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); font: 10px var(--font); }
+    .pattern-search::placeholder { color: var(--muted); }
+    .pattern-results { max-height: 200px; margin-top: 6px; overflow-y: auto; overscroll-behavior: contain; }
+    .pattern-option { width: 100%; min-height: 28px; padding: 0 7px; display: flex; justify-content: space-between; align-items: center; color: var(--ink); background: transparent; border: 0; border-radius: 3px; font: 9px var(--font); text-align: left; cursor: pointer; }
+    .pattern-option:hover, .pattern-option:focus-visible, .pattern-option[aria-selected="true"] { color: var(--accent-ink); background: var(--accent); outline: none; }
+    .pattern-option small { font: 8px var(--font); opacity: .72; }
+    .pattern-empty { padding: 12px 8px; color: var(--muted); font: 9px var(--font); }
+    .song-panel { max-width: 1600px; margin: 0 auto 8px; padding: 8px 10px; background: linear-gradient(180deg, color-mix(in srgb, var(--surface-raised) 24%, var(--surface)), var(--surface)); border: 1px solid var(--line); border-radius: var(--radius); }
+    .song-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+    .song-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+    .song-tools label { display: flex; align-items: center; gap: 5px; color: var(--muted); font: 7px var(--font); text-transform: uppercase; }
+    .song-tools select, .song-entry select { min-height: 26px; padding: 0 6px; color: var(--display); background: var(--surface); border: 1px solid var(--line); border-radius: 3px; font: 8px var(--font); }
+    #songModeButton { transition: background .12s, color .12s, box-shadow .12s; }
+    #songModeButton[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent); border-color: var(--accent); box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 70%, transparent), inset 0 1px 0 rgba(255,255,255,.35); font-weight: 600; }
+    .song-sequence { margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 4px; list-style: none; }
+    .song-entry { min-width: 0; min-height: 30px; padding: 3px 5px; display: grid; grid-template-columns: 20px minmax(0, 1fr) auto auto; align-items: center; gap: 5px; background: color-mix(in srgb, var(--surface-raised) 25%, transparent); border: 1px solid var(--line); border-radius: 3px; }
+    .song-entry.current { border-color: var(--accent); }
+    .song-entry-number { color: var(--muted); font: 7px var(--font); }
+    .song-entry-name { overflow: hidden; color: var(--ink); font: 8px var(--font); text-overflow: ellipsis; white-space: nowrap; }
+    .song-entry select { min-height: 22px; }
+    .song-entry-tools { display: flex; gap: 2px; }
+    .song-entry-tools button { width: 22px; height: 22px; padding: 0; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 3px; font: 10px var(--font); cursor: pointer; }
+    .song-entry-tools button:disabled { opacity: .35; cursor: default; }
+    .song-empty { padding: 8px; color: var(--muted); font: 8px var(--font); }
+    .beat-sync { min-height: 26px; margin-top: 6px; padding: 0 8px; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); font: 7px var(--font); text-transform: uppercase; cursor: pointer; }
+    .beat-sync[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent); border-color: transparent; }
+    .sync-indicator { width: 6px; height: 6px; border: 1px solid currentColor; border-radius: 50%; }
+    .beat-sync[aria-pressed="true"] .sync-indicator { background: currentColor; }
+    .sync-state { opacity: .75; }
+    .mixer-panel, .sequencer-panel {
+      padding: 9px 10px 10px;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--surface-raised) 24%, var(--surface)), var(--surface));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .mixer-panel { margin-bottom: 8px; }
+    .mixer-head, .seq-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .mixer-head { margin-bottom: 8px; }
+    .mixer-head-controls { display: flex; align-items: center; flex-wrap: wrap; justify-content: end; gap: 7px; }
+    .mfx-select { display: flex; align-items: center; gap: 5px; color: var(--muted); font: 7px var(--font); text-transform: uppercase; }
+    .mfx-select select { min-height: 27px; padding: 0 7px; color: var(--display); background: var(--surface); border: 1px solid var(--line); border-radius: 3px; font: 8px var(--font); }
+    .kicker { color: var(--muted); font-size: 9px; }
+    .randomize { min-height: 22px; padding: 0 6px; margin-left: auto; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 3px; font-size: 10px; line-height: 1; cursor: pointer; }
+    .randomize:hover, .randomize:focus-visible { color: var(--accent); border-color: var(--accent); }
+    .fx-modes { display: flex; gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .fx-modes button { min-width: 54px; padding: 5px 7px; color: var(--muted); background: transparent; border: 0; border-radius: 3px; font: 8px var(--font); text-align: center; text-transform: uppercase; cursor: pointer; }
+    .fx-modes button[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent); }
+    .fx-modes button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .mixer-panel { overflow-x: auto; padding-inline: 5px; }
+    .channel-grid { display: grid; grid-template-columns: repeat(7, minmax(185px, 1fr)); gap: 2px; min-width: max-content; }
+    .channel {
+      min-width: 0;
+      min-height: 158px;
+      padding: 6px 4px 6px;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      justify-items: center;
+      align-items: center;
+      gap: 5px;
+      background: color-mix(in srgb, var(--surface-raised) 18%, transparent);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .channel.selected { border-color: color-mix(in srgb, var(--accent) 75%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent); }
+    .channel-name { padding: 0; color: var(--ink); background: transparent; border: 0; font: 600 11px var(--heading); letter-spacing: .05em; text-transform: uppercase; cursor: pointer; }
+    .channel-name[aria-pressed="true"] { color: var(--accent); }
+    .channel-name:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+    .channel-name small { display: block; margin-top: 2px; color: var(--muted); font: 7px var(--font); text-align: center; letter-spacing: 0; }
+    .mute {
+      min-width: 50px;
+      height: 21px;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      font: 7px var(--font);
+      text-transform: uppercase;
+    }
+    .mute.on { color: var(--accent-ink); background: var(--accent); border-color: transparent; }
+    .mute { cursor: pointer; }
+    .mute[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent); border-color: transparent; }
+    .solo {
+      min-width: 26px;
+      height: 21px;
+      margin-left: 3px;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      font: 7px var(--font);
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .solo[aria-pressed="true"] { color: #2b1a00; background: #ffd34d; border-color: transparent; box-shadow: 0 0 8px rgba(255, 211, 77, 0.7); }
+    .fader-area { height: 88px; width: 100%; display: flex; align-items: end; justify-content: center; gap: 10px; }
+    .meter { position: relative; width: 10px; height: 80px; flex: 0 0 auto; background: linear-gradient(to top, #55c878 0 68%, #e8bd48 68% 88%, #df5c4b 88% 100%); border-radius: 4px; overflow: hidden; }
+    .meter i { position: absolute; top: 0; right: 0; left: 0; height: calc(100% - var(--meter-level, 0%)); display: block; background: linear-gradient(180deg, var(--surface-raised), #171d1a); border-radius: inherit; transition: height 45ms linear; }
+    .fader { height: 82px; width: 30px; position: relative; display: flex; justify-content: center; align-items: end; cursor: ns-resize; touch-action: none; }
+    .fader:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; }
+    .fader::before { position: absolute; top: 0; bottom: 0; width: 3px; background: #0e1210; border-radius: 4px; content: ""; box-shadow: 0 0 0 1px var(--line); }
+    .channel[data-mode="pan"] .fader::after { position: absolute; top: 50%; width: 9px; height: 1px; background: var(--accent); content: ""; }
+    .fader i { position: absolute; left: 0; right: 0; bottom: var(--level); height: 10px; background: linear-gradient(180deg, #f5f4ea, #9ba39a); border: 1px solid rgba(0,0,0,.42); border-radius: 2px; box-shadow: 0 2px 5px rgba(0,0,0,.45); }
+    .readout { width: 100%; display: flex; justify-content: space-between; gap: 3px; color: var(--muted); font-size: 7px; }
+    .readout span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .readout b { color: var(--display); font-weight: 500; white-space: nowrap; }
+
+    .seq-head { margin-bottom: 8px; }
+    .octave { display: flex; gap: 5px; }
+    .octave button { min-height: 25px; padding: 0 9px; font-size: 8px; }
+    .steps { display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 6px; }
+    .step {
+      min-width: 0;
+      height: 48px;
+      position: relative;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      color: #94a098;
+      background: linear-gradient(180deg, var(--surface-raised), var(--surface));
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      font: 10px var(--font);
+      cursor: pointer;
+    }
+    .step:nth-child(4n + 1) { border-left-color: color-mix(in srgb, var(--accent) 58%, transparent); }
+    .step.active { color: var(--accent-ink); background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 84%, white), var(--accent)); border-color: transparent; box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 35%, transparent); }
+    .step.playhead { outline: 2px solid var(--good); outline-offset: 2px; }
+    .step:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .step.active::after { position: absolute; top: 5px; width: 3px; height: 3px; border-radius: 50%; background: rgba(0,0,0,.45); content: ""; }
+    .footer-line { margin-top: 6px; display: flex; justify-content: space-between; color: var(--muted); font-size: 8px; }
+    .seq-controls, .deck-edit { display: flex; align-items: center; gap: 4px; }
+    .deck-edit button { min-width: 25px; min-height: 25px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 3px; font: 8px var(--font); cursor: pointer; }
+    .deck-edit button[aria-pressed="true"] { color: var(--accent-ink); background: var(--accent); }
+
+    @media (max-width: 1000px) {
+      .upper-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .filter-panel, .envelope-panel, .performance-panel { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 16px 10px 22px; }
+      .page-head { align-items: start; }
+      .page-mark { display: none; }
+      .instrument { padding: 10px; }
+      .topline { grid-template-columns: 1fr auto; }
+      .topline .status { display: none; }
+      .brand strong { font-size: 20px; }
+      .transport button { padding: 0 8px; }
+      .filter-panel, .envelope-panel { grid-column: 1 / -1; }
+      .upper-controls { gap: 6px; }
+      .upper-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .performance-panel { grid-column: 1 / -1; }
+      .control-panel { min-height: 92px; padding: 8px 7px; }
+      .panel-title { font-size: 8px; }
+      .dial { width: 36px; }
+      .dial-wrap { min-width: 44px; }
+      .filter-options button { padding: 6px 5px; }
+      .mixer-panel, .sequencer-panel { padding: 8px 7px; }
+      .channel-grid { gap: 4px; }
+      .channel { min-height: 150px; padding: 5px 3px; }
+      .channel-name { font-size: 9px; }
+      .channel-name small { font-size: 6px; }
+      .fader-area { height: 82px; gap: 6px; }
+      .meter { height: 74px; }
+      .fader { height: 76px; width: 28px; }
+      .steps { gap: 3px; }
+      .step { height: 38px; font-size: 8px; }
+      .mixer-head { align-items: start; flex-wrap: wrap; }
+      .mixer-head-controls { justify-content: start; }
+      .fx-modes button { min-width: 0; padding: 5px 6px; font-size: 7px; }
+      .footer-line { font-size: 7px; }
+    }
+
+    @media (max-width: 440px) {
+      .upper-controls { grid-template-columns: 1fr; }
+      .performance-panel { grid-column: auto; }
+      .envelope-controls { min-height: 82px; }
+      .envelope-control input { height: 58px; }
+      .performance-fields { grid-template-columns: 1fr; gap: 10px; }
+      .performance-fields > .reserved-field:last-child { max-width: none; }
+      .pattern-deck .pattern-menu { width: min(360px, calc(100vw - 72px)); }
+      .pattern-menu { width: min(360px, calc(100vw - 72px)); }
+      .control-panel { min-height: 96px; }
+      .channel { min-height: 142px; }
+      .meter { display: none; }
+      .fader-area { height: 74px; }
+      .meter { height: 66px; }
+      .fader { height: 68px; }
+      .channel-name { font-size: 8px; }
+      .readout { font-size: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Virtual instrument / control surface</p>
+      <h1>MC-505 Groovebox</h1>
+    </div>
+    <div class="page-actions">
+      <span class="project-status" id="projectStatus">LOCAL PROJECT</span>
+      <button type="button" id="saveProjectButton" title="Save project in this browser">Save</button>
+      <button type="button" id="recallProjectButton" title="Recall saved project" disabled>Recall</button>
+    </div>
+  </header>
+
+  <main class="instrument">
+    <header class="topline">
+      <div class="brand"><strong>MC-505</strong><span>GROOVEBOX</span></div>
+      <div class="transport" aria-label="Transport controls">
+        <button class="play" id="playButton" type="button" aria-label="Play" aria-pressed="false">▶</button>
+        <button id="stopButton" type="button" aria-label="Stop">■</button>
+      </div>
+      <div class="status"><strong id="playbackStatus">STOPPED</strong>MASTER OUT</div>
+    </header>
+
+    <section class="upper-controls" aria-label="Master, filter, and performance controls">
+      <div class="control-panel output-panel">
+        <div class="panel-title"><span>Output</span><span>Master section</span></div>
+        <div class="control-row">
+          <div class="dial-wrap"><div class="dial" id="masterVolumeKnob" role="slider" tabindex="0" aria-label="Master volume" aria-valuemin="0" aria-valuemax="100"></div><span class="dial-name">Master</span></div>
+          <div class="dial-wrap"><div class="dial" id="lowBoostKnob" role="slider" tabindex="0" aria-label="Low boost" aria-valuemin="0" aria-valuemax="100"></div><span class="dial-name">Low Boost</span></div>
+        </div>
+        <div class="master-processing" aria-label="Master output processing">
+          <div class="dial master-knob" id="masterKnob" role="slider" tabindex="0" aria-label="Master Quantize" aria-valuemin="0" aria-valuemax="4" aria-valuenow="3" aria-valuetext="Quantize 1/16"></div>
+          <div class="master-setting">
+            <button class="master-mode-trigger" id="masterModeTrigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="masterModeMenu">
+              <span id="masterModeLabel">Quantize</span><span aria-hidden="true">⌄</span>
+            </button>
+            <output class="master-mode-value" id="masterModeValue">1/16</output>
+            <div class="master-mode-menu" id="masterModeMenu" role="listbox" aria-label="Master processing parameter" hidden>
+              <button class="master-mode-option" type="button" role="option" aria-selected="true" data-master-mode="quantize">Quantize</button>
+              <button class="master-mode-option" type="button" role="option" aria-selected="false" data-master-mode="velocity">Velocity</button>
+              <button class="master-mode-option" type="button" role="option" aria-selected="false" data-master-mode="groove">Groove</button>
+              <button class="master-mode-option" type="button" role="option" aria-selected="false" data-master-mode="shuffle">Shuffle</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="control-panel tempo-panel">
+        <div class="panel-title"><span>Tempo</span><span>Master BPM</span></div>
+        <div class="tempo-control" aria-label="Tempo 126 beats per minute">
+          <div class="dial tempo-dial" id="tempoKnob" role="slider" tabindex="0" aria-label="Tempo" aria-valuemin="60" aria-valuemax="180" aria-valuenow="126"></div>
+          <div class="tempo-readout"><span class="tempo-value" id="tempoValue">126</span><span class="tempo-unit">BPM</span></div>
+        </div>
+      </div>
+      <div class="control-panel filter-panel">
+        <div class="panel-title"><span>Filter</span><span>Master bus</span><button class="randomize" id="filterRandomizeButton" type="button" title="Randomize master filter" aria-label="Randomize master filter">🎲</button></div>
+        <div class="control-row">
+          <div class="dial-wrap"><div class="dial" id="cutoffKnob" role="slider" tabindex="0" aria-label="Filter cutoff" aria-valuemin="40" aria-valuemax="18000"></div><span class="dial-name">Cutoff</span></div>
+          <div class="dial-wrap"><div class="dial" id="resonanceKnob" role="slider" tabindex="0" aria-label="Filter resonance" aria-valuemin="0.1" aria-valuemax="18"></div><span class="dial-name">Resonance</span></div>
+          <div class="filter-options" role="group" aria-label="Filter type">
+            <button type="button" data-filter-type="highpass" aria-pressed="false">HP</button>
+            <button type="button" data-filter-type="lowpass" aria-pressed="true">LP</button>
+            <button type="button" data-filter-type="notch" aria-pressed="false">Notch</button>
+          </div>
+        </div>
+      </div>
+      <div class="control-panel envelope-panel">
+        <div class="panel-title"><span>Envelope</span><span id="envelopePartLabel">KICK</span><button class="randomize" id="envelopeRandomizeButton" type="button" title="Randomize selected envelope" aria-label="Randomize selected envelope">🎲</button></div>
+        <div class="envelope-targets" role="group" aria-label="Envelope destination">
+          <button type="button" data-envelope-target="pitch" aria-pressed="false">Pitch</button>
+          <button type="button" data-envelope-target="filter" aria-pressed="true">Filter</button>
+          <button type="button" data-envelope-target="amp" aria-pressed="false">Amp</button>
+        </div>
+        <div class="envelope-controls">
+          <div class="envelope-control"><output id="envDepthValue">32</output><input id="envDepth" type="range" min="-63" max="63" value="32" aria-label="Filter envelope depth"><label for="envDepth">Depth</label></div>
+          <div class="envelope-control"><output id="envAttackValue">8</output><input id="envAttack" type="range" min="0" max="127" value="8" aria-label="Envelope attack"><label for="envAttack">A</label></div>
+          <div class="envelope-control"><output id="envDecayValue">32</output><input id="envDecay" type="range" min="0" max="127" value="32" aria-label="Envelope decay"><label for="envDecay">D</label></div>
+          <div class="envelope-control"><output id="envSustainValue">56</output><input id="envSustain" type="range" min="0" max="127" value="56" aria-label="Filter envelope sustain"><label for="envSustain">S</label></div>
+          <div class="envelope-control"><output id="envReleaseValue">24</output><input id="envRelease" type="range" min="0" max="127" value="24" aria-label="Envelope release"><label for="envRelease">R</label></div>
+        </div>
+      </div>
+      <div class="control-panel performance-panel">
+        <div class="panel-title"><span>Performance</span><span>A/B + Beat Sync</span></div>
+        <div class="performance-fields">
+          <div class="reserved-field">
+            <span class="reserved-label">Pattern Decks</span>
+            <div class="pattern-decks">
+              <div class="pattern-deck active" data-deck="A">
+                <span class="deck-label"><span>Deck A</span><span class="deck-status">LIVE</span></span>
+                <div class="pattern-picker" id="patternAPicker" data-count="14" data-item-label="Pattern" data-initial="001">
+                  <button class="pattern-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="patternAMenu">
+                    <span class="pattern-current">001 · Warehouse</span><span aria-hidden="true">⌄</span>
+                  </button>
+                  <div class="pattern-menu" id="patternAMenu" hidden>
+                    <div class="pattern-menu-head"><strong>Choose Pattern A</strong><span class="pattern-count">14 / 14</span></div>
+                    <input class="pattern-search" type="search" placeholder="Search by number" aria-label="Search Deck A patterns" autocomplete="off">
+                    <div class="pattern-results" role="listbox" aria-label="Deck A patterns"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="pattern-deck" data-deck="B">
+                <span class="deck-label"><span>Deck B</span><span class="deck-status">READY</span></span>
+                <div class="pattern-picker" id="patternBPicker" data-count="14" data-item-label="Pattern" data-initial="002">
+                  <button class="pattern-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="patternBMenu">
+                    <span class="pattern-current">002 · Broken Circuit</span><span aria-hidden="true">⌄</span>
+                  </button>
+                  <div class="pattern-menu" id="patternBMenu" hidden>
+                    <div class="pattern-menu-head"><strong>Choose Pattern B</strong><span class="pattern-count">14 / 14</span></div>
+                    <input class="pattern-search" type="search" placeholder="Search by number" aria-label="Search Deck B patterns" autocomplete="off">
+                    <div class="pattern-results" role="listbox" aria-label="Deck B patterns"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button class="beat-sync" id="beatSync" type="button" aria-pressed="false" aria-label="Beat sync off">
+              <span class="sync-indicator" aria-hidden="true"></span><span>Beat Sync</span><span class="sync-state">Off</span>
+            </button>
+          </div>
+          <div class="reserved-field">
+            <span class="reserved-label">Arpeggiator</span>
+            <div class="pattern-picker" id="arpeggiatorPicker" data-count="8" data-item-label="Arp" data-initial="off">
+              <button class="pattern-trigger" id="arpeggiatorTrigger" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="arpeggiatorMenu">
+                <span class="pattern-current">OFF · Off</span><span aria-hidden="true">⌄</span>
+              </button>
+              <div class="pattern-menu" id="arpeggiatorMenu" hidden>
+                <div class="pattern-menu-head"><strong>Choose Arp Style</strong><span class="pattern-count">8 / 8</span></div>
+                <input class="pattern-search" type="search" placeholder="Search styles" aria-label="Search arpeggiator styles" autocomplete="off">
+                <div class="pattern-results" role="listbox" aria-label="Arpeggiator styles"></div>
+              </div>
+            </div>
+            <div class="arp-settings">
+              <select id="arpRate" aria-label="Arpeggiator rate">
+                <option value="1">1/16</option>
+                <option value="2">1/8</option>
+                <option value="0.5">1/32</option>
+              </select>
+              <select id="arpRange" aria-label="Arpeggiator octave range">
+                <option value="1">1 Oct</option>
+                <option value="2">2 Oct</option>
+                <option value="3">3 Oct</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="song-panel" aria-label="Pattern set and song arrangement">
+      <div class="song-head">
+        <span class="kicker">Pattern Set / Song</span>
+        <div class="song-tools">
+          <label for="patternSetSelect">Set
+            <select id="patternSetSelect">
+              <option value="roots">Roots & One Drop</option>
+              <option value="steppers">Rockers & Steppers</option>
+              <option value="dub">Dub & Half-Time</option>
+            </select>
+          </label>
+          <button type="button" id="loadPatternSetButton">Load Set</button>
+          <button type="button" id="addSongPatternButton">Add Live</button>
+          <button type="button" id="clearSongButton">Clear</button>
+          <button type="button" id="songModeButton" aria-pressed="false">Song Mode Off</button>
+        </div>
+      </div>
+      <ol class="song-sequence" id="songSequence" aria-label="Song pattern sequence"></ol>
+    </section>
+
+    <section class="mixer-panel" aria-label="Seven-part mixer">
+      <div class="mixer-head">
+        <span class="kicker">Part mixer <span aria-hidden="true">/</span> 7 tracks</span>
+        <div class="mixer-head-controls">
+          <label class="mfx-select" for="mfxType">Master MFX
+            <select id="mfxType">
+              <option value="off">Off</option>
+              <option value="chorus">Chorus</option>
+              <option value="flanger">Flanger</option>
+              <option value="phaser">Phaser</option>
+              <option value="drive">Drive</option>
+              <option value="echo">Echo</option>
+            </select>
+          </label>
+          <div class="dial-wrap mfx-amount"><div class="dial small" id="mfxAmountKnob" role="slider" tabindex="0" aria-label="MFX return amount" aria-valuemin="0" aria-valuemax="100" aria-valuenow="72"></div><span class="dial-name">MFX Amt</span></div>
+          <div class="fx-modes" role="group" aria-label="Mixer parameter">
+            <button type="button" data-mixer-mode="level" aria-pressed="true">Level</button>
+            <button type="button" data-mixer-mode="reverb" aria-pressed="false">Reverb</button>
+            <button type="button" data-mixer-mode="delay" aria-pressed="false">Delay</button>
+            <button type="button" data-mixer-mode="pan" aria-pressed="false">Pan</button>
+            <button type="button" data-mixer-mode="mfxSend" aria-pressed="false">FX Send</button>
+          </div>
+          <button type="button" id="clearFxSendButton" title="Reset all track FX sends to zero">Clr Send</button>
+          <button class="randomize" id="mixerRandomizeButton" type="button" title="Randomize mixer values for the current mode" aria-label="Randomize mixer values for the current mode">🎲</button>
+        </div>
+      </div>
+      <div class="channel-grid">
+        <div class="channel selected" data-track="bd" data-level="82" data-reverb="12" data-delay="8" data-pan="50"><button class="channel-name" type="button" data-track-select="bd" aria-pressed="true">BD<small>Kick</small></button><button class="mute" type="button" aria-label="Mute kick" aria-pressed="false">Mute</button><button class="solo" type="button" aria-label="Solo kick" aria-pressed="false">S</button><div class="fader-area"><div class="meter"><i style="--level:76%"></i></div><div class="fader" role="slider" tabindex="0" aria-label="Kick level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="82"><i style="--level:69.7%"></i></div></div><div class="readout"><span>Level</span><b>82%</b></div></div>
+        <div class="channel" data-track="sd" data-level="67" data-reverb="24" data-delay="18" data-pan="50"><button class="channel-name" type="button" data-track-select="sd" aria-pressed="false">SD<small>Snare</small></button><button class="mute" type="button" aria-label="Mute snare" aria-pressed="false">M</button><button class="solo" type="button" aria-label="Solo snare" aria-pressed="false">S</button><div class="fader-area"><div class="meter"><i style="--level:52%"></i></div><div class="fader" role="slider" tabindex="0" aria-label="Snare level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="67"><i style="--level:57%"></i></div></div><div class="readout"><span>Level</span><b>67%</b></div></div>
+        <div class="channel" data-track="clap" data-level="74" data-reverb="32" data-delay="16" data-pan="58"><button class="channel-name" type="button" data-track-select="clap" aria-pressed="false">CLP<small>Clap</small></button><button class="mute" type="button" aria-label="Mute clap" aria-pressed="false">M</button><button class="solo" type="button" aria-label="Solo clap" aria-pressed="false">S</button><div class="fader-area"><div class="meter"><i style="--level:67%"></i></div><div class="fader" role="slider" tabindex="0" aria-label="Clap level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="74"><i style="--level:62.9%"></i></div></div><div class="readout"><span>Level</span><b>74%</b></div></div>
+        <div class="channel" data-track="chh" data-level="61" data-reverb="18" data-delay="0" data-pan="62"><button class="channel-name" type="button" data-track-select="chh" aria-pressed="false">CHH<small>Closed HH</small></button><button class="mute" type="button" aria-label="Mute closed hi-hat" aria-pressed="false">M</button><button class="solo" type="button" aria-label="Solo closed hi-hat" aria-pressed="false">S</button><div class="fader-area"><div class="meter"><i style="--level:42%"></i></div><div class="fader" role="slider" tabindex="0" aria-label="Closed hi-hat level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="61"><i style="--level:51.9%"></i></div></div><div class="readout"><span>Level</span><b>61%</b></div></div>
+        <div class="channel" data-track="ohh" data-level="56" data-reverb="28" data-delay="12" data-pan="40"><button class="channel-name" type="button" data-track-select="ohh" aria-pressed="false">OHH<small>Open HH</small></button><button class="mute" type="button" aria-label="Mute open hi-hat" aria-pressed="false">M</button><button class="solo" type="button" aria-label="Solo open hi-hat" aria-pressed="false">S</button><div class="fader-area"><div class="meter"><i style="--level:58%"></i></div><div class="fader" role="slider" tabindex="0" aria-label="Open hi-hat level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="56"><i style="--level:47.6%"></i></div></div><div class="readout"><span>Level</span><b>56%</b></div></div>
+        <div class="channel" data-track="perc" data-level="48" data-reverb="20" data-delay="24" data-pan="65"><button class="channel-name" type="button" data-track-select="perc" aria-pressed="false">PRC<small>Perc</small></button><button class="mute" type="button" aria-label="Mute percussion" aria-pressed="false">M</button><button class="solo" type="button" aria-label="Solo percussion" aria-pressed="false">S</button><div class="fader-area"><div class="meter"><i style="--level:35%"></i></div><div class="fader" role="slider" tabindex="0" aria-label="Percussion level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="48"><i style="--level:40.8%"></i></div></div><div class="readout"><span>Level</span><b>48%</b></div></div>
+        <div class="channel" data-track="bass" data-level="78" data-reverb="10" data-delay="18" data-pan="50"><button class="channel-name" type="button" data-track-select="bass" aria-pressed="false">BASS<small>Synth bass</small></button><button class="mute" type="button" aria-label="Mute bass" aria-pressed="false">M</button><button class="solo" type="button" aria-label="Solo bass" aria-pressed="false">S</button><div class="fader-area"><div class="meter"><i style="--level:72%"></i></div><div class="fader" role="slider" tabindex="0" aria-label="Bass level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="78"><i style="--level:66.3%"></i></div></div><div class="readout"><span>Level</span><b>78%</b></div></div>
+      </div>
+    </section>
+
+    <section class="sequencer-panel" aria-label="16-step sequencer">
+      <div class="seq-head">
+        <span class="kicker">Step sequencer <span aria-hidden="true">/</span> 16 <span id="sequencerTarget">DECK A / KICK</span></span>
+        <div class="seq-controls">
+          <div class="deck-edit" role="group" aria-label="Edit pattern deck"><button type="button" data-edit-deck="A" aria-pressed="true">A</button><button type="button" data-edit-deck="B" aria-pressed="false">B</button></div>
+          <div class="octave"><button type="button" data-octave="-1" aria-label="Lower bass octave">− Oct</button><button type="button" data-octave="1" aria-label="Raise bass octave">+ Oct</button></div>
+        </div>
+      </div>
+      <div class="steps" aria-label="Sixteen step editor">
+        <button class="step" type="button" aria-pressed="false">01</button><button class="step" type="button" aria-pressed="false">02</button><button class="step" type="button" aria-pressed="false">03</button><button class="step" type="button" aria-pressed="false">04</button>
+        <button class="step" type="button" aria-pressed="false">05</button><button class="step" type="button" aria-pressed="false">06</button><button class="step" type="button" aria-pressed="false">07</button><button class="step" type="button" aria-pressed="false">08</button>
+        <button class="step" type="button" aria-pressed="false">09</button><button class="step" type="button" aria-pressed="false">10</button><button class="step" type="button" aria-pressed="false">11</button><button class="step" type="button" aria-pressed="false">12</button>
+        <button class="step" type="button" aria-pressed="false">13</button><button class="step" type="button" aria-pressed="false">14</button><button class="step" type="button" aria-pressed="false">15</button><button class="step" type="button" aria-pressed="false">16</button>
+      </div>
+      <div class="footer-line"><span id="stepStatus">DRUM PART</span><span id="octaveValue">OCT 0</span></div>
+    </section>
+  </main>
+
+  <script src="./mc505.js?v=arp" defer></script>
+</body>
+</html>
